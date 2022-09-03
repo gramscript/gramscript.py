@@ -1,15 +1,25 @@
-# User's personal information
+# Development
 *.session
 config.ini
+main.py
+unknown_errors.txt
 
 # gramscript generated code
-gramscript/api/errors/exceptions/
-gramscript/api/functions/
-gramscript/api/types/
-gramscript/api/all.py
+gramscript/errors/exceptions/
+gramscript/raw/functions/
+gramscript/raw/types/
+gramscript/raw/base/
+gramscript/raw/all.py
+docs/source/telegram
+docs/source/api/methods/
+docs/source/api/bound-methods/
+docs/source/api/types/
 
 # PyCharm stuff
 .idea/
+
+# VS Code
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -78,6 +88,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+docs/source/_build
 
 # PyBuilder
 target/

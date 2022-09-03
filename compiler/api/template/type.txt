@@ -1,0 +1,17 @@
+{notice}
+
+{warning}
+
+from typing import Union
+from gramscript import raw
+from gramscript.raw.core import TLObject
+
+{name} = Union[{types}]
+
+
+# noinspection PyRedeclaration
+class {name}(TLObject):  # type: ignore
+    """{docstring}
+    """
+
+    QUALNAME = "gramscript.raw.base.{qualname}"

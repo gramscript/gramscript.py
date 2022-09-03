@@ -1,23 +1,42 @@
-
-
-import logging
-import platform
-import threading
-from datetime import timedelta, datetime
-from hashlib import sha1, sha256
-from io import BytesIO
-from os import urandom
-from queue import Queue
-from threading import Event, Thread
-
-from gramscript import __copyright__, __license__, __version__
-from gramscript.api import functions, types, core
-from gramscript.api.all import layer
-from gramscript.api.core import Message, Object, MsgContainer, Long, FutureSalt, Int
-from gramscript.api.errors import Error
+from .internals import MsgId, MsgFactory
+from gramscript.raw.core import TLObject, MsgContainer, Int, Long, FutureSalt, FutureSalts
+from gramscript.raw.all import layer
+from gramscript.errors import RPCError, InternalServerError, AuthKeyDuplicated, FloodWait
+from gramscript.crypto import mtproto
 from gramscript.connection import Connection
-from gramscript.crypto import IGE, KDF
-from .internals import MsgId, MsgFactory, DataCenter
+from gramscript import raw
+from gramscript import __copyright__, __license__, __version__
+import gramscript
+import os
+from io import BytesIO
+from hashlib import sha1
+from datetime import datetime, timedelta
+from concurrent.futures.thread import ThreadPoolExecutor
+import time
+import logging
+import asyncio
+# MIT License
+
+# Copyright (c) 2022 Gramscript Telegram API
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
 
 log = logging.getLogger(__name__)
 
@@ -25,214 +44,206 @@ log = logging.getLogger(__name__)
 class Result:
     def __init__(self):
         self.value = None
-        self.event = Event()
+        self.event = asyncio.Event()
 
 
 class Session:
-    VERSION = __version__
-    APP_VERSION = "gramscript \U0001f525 {}".format(VERSION)
-
-    DEVICE_MODEL = "{} {}".format(
-        platform.python_implementation(),
-        platform.python_version()
-    )
-
-    SYSTEM_VERSION = "{} {}".format(
-        platform.system(),
-        platform.release()
-    )
-
     INITIAL_SALT = 0x616e67656c696361
-
-    WORKERS = 4
-    WAIT_TIMEOUT = 10
+    START_TIMEOUT = 1
+    WAIT_TIMEOUT = 15
+    SLEEP_THRESHOLD = 60
     MAX_RETRIES = 5
     ACKS_THRESHOLD = 8
     PING_INTERVAL = 5
+    EXECUTOR_SIZE_THRESHOLD = 512
 
     notice_displayed = False
 
-    def __init__(self, dc_id: int, test_mode: bool, proxy: type, auth_key: bytes, api_id: str, is_cdn: bool = False):
+    BAD_MSG_DESCRIPTION = {
+        16: "[16] msg_id too low, the client time has to be synchronized",
+        17: "[17] msg_id too high, the client time has to be synchronized",
+        18: "[18] incorrect two lower order msg_id bits, the server expects client message msg_id to be divisible by 4",
+        19: "[19] container msg_id is the same as msg_id of a previously received message",
+        20: "[20] message too old, it cannot be verified by the server",
+        32: "[32] msg_seqno too low",
+        33: "[33] msg_seqno too high",
+        34: "[34] an even msg_seqno expected, but odd received",
+        35: "[35] odd msg_seqno expected, but even received",
+        48: "[48] incorrect server salt",
+        64: "[64] invalid container"
+    }
+
+    executor = ThreadPoolExecutor(2, thread_name_prefix="CryptoWorker")
+
+    def __init__(
+        self,
+        client: "gramscript.Client",
+        dc_id: int,
+        auth_key: bytes,
+        test_mode: bool,
+        is_media: bool = False,
+        is_cdn: bool = False
+    ):
         if not Session.notice_displayed:
-            print("gramscript v{}, {}".format(__version__, __copyright__))
-            print("Licensed under the terms of the " + __license__, end="\n\n")
+            print(f"gramscript v{__version__}, {__copyright__}")
+            print(f"Licensed under the terms of the {__license__}", end="\n\n")
             Session.notice_displayed = True
 
+        self.client = client
+        self.dc_id = dc_id
+        self.auth_key = auth_key
+        self.test_mode = test_mode
+        self.is_media = is_media
         self.is_cdn = is_cdn
 
-        self.connection = Connection(DataCenter(dc_id, test_mode), proxy)
+        self.connection = None
 
-        self.api_id = api_id
-
-        self.auth_key = auth_key
         self.auth_key_id = sha1(auth_key).digest()[-8:]
 
-        self.msg_id = MsgId()
-        self.session_id = Long(self.msg_id())
-        self.msg_factory = MsgFactory(self.msg_id)
+        self.session_id = os.urandom(8)
+        self.msg_factory = MsgFactory()
 
         self.current_salt = None
 
         self.pending_acks = set()
 
-        self.recv_queue = Queue()
         self.results = {}
 
-        self.ping_thread = None
-        self.ping_thread_event = Event()
+        self.ping_task = None
+        self.ping_task_event = asyncio.Event()
 
-        self.next_salt_thread = None
-        self.next_salt_thread_event = Event()
+        self.next_salt_task = None
+        self.next_salt_task_event = asyncio.Event()
 
-        self.is_connected = Event()
+        self.network_task = None
 
-        self.update_handler = None
+        self.is_connected = asyncio.Event()
 
-        self.total_connections = 0
-        self.total_messages = 0
-        self.total_bytes = 0
+        self.loop = asyncio.get_event_loop()
 
-    def start(self):
-        terms = None
-
+    async def start(self):
         while True:
+            self.connection = Connection(
+                self.dc_id,
+                self.test_mode,
+                self.client.ipv6,
+                self.client.proxy
+            )
+
             try:
-                self.connection.connect()
+                await self.connection.connect()
 
-                for i in range(self.WORKERS):
-                    Thread(target=self.worker,
-                           name="Worker#{}".format(i + 1)).start()
+                self.network_task = self.loop.create_task(
+                    self.network_worker())
 
-                Thread(target=self.recv, name="RecvThread").start()
-
-                self.current_salt = FutureSalt(0, 0, self.INITIAL_SALT)
+                self.current_salt = FutureSalt(0, 0, Session.INITIAL_SALT)
                 self.current_salt = FutureSalt(
-                    0, 0, self._send(functions.Ping(0)).new_server_salt)
-                self.current_salt = self._send(
-                    functions.GetFutureSalts(1)).salts[0]
+                    0, 0,
+                    (await self._send(
+                        raw.functions.Ping(ping_id=0),
+                        timeout=self.START_TIMEOUT
+                    )).new_server_salt
+                )
+                self.current_salt = (await self._send(
+                    raw.functions.GetFutureSalts(num=1),
+                    timeout=self.START_TIMEOUT)).salts[0]
 
-                self.next_salt_thread = Thread(
-                    target=self.next_salt, name="NextSaltThread")
-                self.next_salt_thread.start()
+                self.next_salt_task = self.loop.create_task(
+                    self.next_salt_worker())
 
                 if not self.is_cdn:
-                    terms = self._send(
-                        functions.InvokeWithLayer(
-                            layer,
-                            functions.InitConnection(
-                                self.api_id,
-                                self.DEVICE_MODEL,
-                                self.SYSTEM_VERSION,
-                                self.APP_VERSION,
-                                "en", "", "en",
-                                functions.help.GetTermsOfService(),
+                    await self._send(
+                        raw.functions.InvokeWithLayer(
+                            layer=layer,
+                            query=raw.functions.InitConnection(
+                                api_id=self.client.api_id,
+                                app_version=self.client.app_version,
+                                device_model=self.client.device_model,
+                                system_version=self.client.system_version,
+                                system_lang_code=self.client.lang_code,
+                                lang_code=self.client.lang_code,
+                                lang_pack="",
+                                query=raw.functions.help.GetConfig(),
                             )
-                        )
-                    ).text
+                        ),
+                        timeout=self.START_TIMEOUT
+                    )
 
-                self.ping_thread = Thread(target=self.ping, name="PingThread")
-                self.ping_thread.start()
+                self.ping_task = self.loop.create_task(self.ping_worker())
 
-                log.info("Connection inited: Layer {}".format(layer))
-            except (OSError, TimeoutError):
-                self.stop()
+                log.info(f"Session initialized: Layer {layer}")
+                log.info(
+                    f"Device: {self.client.device_model} - {self.client.app_version}")
+                log.info(
+                    f"System: {self.client.system_version} ({self.client.lang_code.upper()})")
+
+            except AuthKeyDuplicated as e:
+                await self.stop()
+                raise e
+            except (OSError, TimeoutError, RPCError):
+                await self.stop()
+            except Exception as e:
+                await self.stop()
+                raise e
             else:
                 break
 
         self.is_connected.set()
-        self.total_connections += 1
 
-        log.debug("Session started")
+        log.info("Session started")
 
-        return terms
-
-    def stop(self):
+    async def stop(self):
         self.is_connected.clear()
 
-        self.ping_thread_event.set()
-        self.next_salt_thread_event.set()
+        self.ping_task_event.set()
+        self.next_salt_task_event.set()
 
-        if self.ping_thread is not None:
-            self.ping_thread.join()
+        if self.ping_task is not None:
+            await self.ping_task
 
-        if self.next_salt_thread is not None:
-            self.next_salt_thread.join()
+        if self.next_salt_task is not None:
+            await self.next_salt_task
 
-        self.ping_thread_event.clear()
-        self.next_salt_thread_event.clear()
+        self.ping_task_event.clear()
+        self.next_salt_task_event.clear()
 
         self.connection.close()
 
-        for i in range(self.WORKERS):
-            self.recv_queue.put(None)
+        if self.network_task:
+            await self.network_task
 
-        log.debug("Session stopped")
+        for i in self.results.values():
+            i.event.set()
 
-    def restart(self):
-        self.stop()
-        self.start()
-
-    def pack(self, message: Message):
-        data = Long(self.current_salt.salt) + self.session_id + message.write()
-        # MTProto 2.0 requires a minimum of 12 padding bytes.
-        # I don't get why it says up to 1024 when what it actually needs after the
-        # required 12 bytes is just extra 0..15 padding bytes for aes
-        # TODO: It works, but recheck this. What's the meaning of 12..1024 padding bytes?
-        padding = urandom(-(len(data) + 12) % 16 + 12)
-
-        # 88 = 88 + 0 (outgoing message)
-        msg_key_large = sha256(
-            self.auth_key[88: 88 + 32] + data + padding).digest()
-        msg_key = msg_key_large[8:24]
-        aes_key, aes_iv = KDF(self.auth_key, msg_key, True)
-
-        return self.auth_key_id + msg_key + IGE.encrypt(data + padding, aes_key, aes_iv)
-
-    def unpack(self, b: BytesIO) -> Message:
-        assert b.read(8) == self.auth_key_id, b.getvalue()
-
-        msg_key = b.read(16)
-        aes_key, aes_iv = KDF(self.auth_key, msg_key, False)
-        data = BytesIO(IGE.decrypt(b.read(), aes_key, aes_iv))
-        data.read(8)
-
-        # https://core.telegram.org/mtproto/security_guidelines#checking-session-id
-        assert data.read(8) == self.session_id
-
-        message = Message.read(data)
-
-        # https://core.telegram.org/mtproto/security_guidelines#checking-sha256-hash-value-of-msg-key
-        # https://core.telegram.org/mtproto/security_guidelines#checking-message-length
-        # 96 = 88 + 8 (incoming message)
-        assert msg_key == sha256(
-            self.auth_key[96:96 + 32] + data.getvalue()).digest()[8:24]
-
-        # https://core.telegram.org/mtproto/security_guidelines#checking-msg-id
-        # TODO: check for lower msg_ids
-        assert message.msg_id % 2 != 0
-
-        return message
-
-    def worker(self):
-        name = threading.current_thread().name
-        log.debug("{} started".format(name))
-
-        while True:
-            packet = self.recv_queue.get()
-
-            if packet is None:
-                break
-
+        if not self.is_media and callable(self.client.disconnect_handler):
             try:
-                self.unpack_dispatch_and_ack(packet)
+                await self.client.disconnect_handler(self.client)
             except Exception as e:
                 log.error(e, exc_info=True)
 
-        log.debug("{} stopped".format(name))
+        log.info("Session stopped")
 
-    def unpack_dispatch_and_ack(self, packet: bytes):
-        # TODO: A better dispatcher
-        data = self.unpack(BytesIO(packet))
+    async def restart(self):
+        await self.stop()
+        await self.start()
+
+    async def handle_packet(self, packet):
+        if len(packet) <= self.EXECUTOR_SIZE_THRESHOLD:
+            data = mtproto.unpack(
+                BytesIO(packet),
+                self.session_id,
+                self.auth_key,
+                self.auth_key_id
+            )
+        else:
+            data = await self.loop.run_in_executor(
+                self.executor,
+                mtproto.unpack,
+                BytesIO(packet),
+                self.session_id,
+                self.auth_key,
+                self.auth_key_id
+            )
 
         messages = (
             data.body.messages
@@ -240,157 +251,220 @@ class Session:
             else [data]
         )
 
-        log.debug(data)
+        log.debug(f"Received:\n{data}")
 
-        self.total_bytes += len(packet)
-        self.total_messages += len(messages)
+        for msg in messages:
+            if msg.seq_no == 0:
+                MsgId.set_server_time(msg.msg_id / (2 ** 32))
 
-        for i in messages:
-            if i.seq_no % 2 != 0:
-                if i.msg_id in self.pending_acks:
+            if msg.seq_no % 2 != 0:
+                if msg.msg_id in self.pending_acks:
                     continue
                 else:
-                    self.pending_acks.add(i.msg_id)
+                    self.pending_acks.add(msg.msg_id)
 
-            # log.debug("{}".format(type(i.body)))
-
-            if isinstance(i.body, (types.MsgDetailedInfo, types.MsgNewDetailedInfo)):
-                self.pending_acks.add(i.body.answer_msg_id)
+            if isinstance(msg.body, (raw.types.MsgDetailedInfo, raw.types.MsgNewDetailedInfo)):
+                self.pending_acks.add(msg.body.answer_msg_id)
                 continue
 
-            if isinstance(i.body, types.NewSessionCreated):
+            if isinstance(msg.body, raw.types.NewSessionCreated):
                 continue
 
             msg_id = None
 
-            if isinstance(i.body, (types.BadMsgNotification, types.BadServerSalt)):
-                msg_id = i.body.bad_msg_id
-            elif isinstance(i.body, (core.FutureSalts, types.RpcResult)):
-                msg_id = i.body.req_msg_id
-            elif isinstance(i.body, types.Pong):
-                msg_id = i.body.msg_id
+            if isinstance(msg.body, (raw.types.BadMsgNotification, raw.types.BadServerSalt)):
+                msg_id = msg.body.bad_msg_id
+            elif isinstance(msg.body, (FutureSalts, raw.types.RpcResult)):
+                msg_id = msg.body.req_msg_id
+            elif isinstance(msg.body, raw.types.Pong):
+                msg_id = msg.body.msg_id
             else:
-                if self.update_handler:
-                    self.update_handler(i.body)
+                if self.client is not None:
+                    self.loop.create_task(self.client.handle_updates(msg.body))
 
             if msg_id in self.results:
-                self.results[msg_id].value = getattr(i.body, "result", i.body)
+                self.results[msg_id].value = getattr(
+                    msg.body, "result", msg.body)
                 self.results[msg_id].event.set()
 
-        # print(
-        #     "This packet bytes: ({}) | Total bytes: ({})\n"
-        #     "This packet messages: ({}) | Total messages: ({})\n"
-        #     "Total connections: ({})".format(
-        #         len(packet), self.total_bytes, len(messages), self.total_messages, self.total_connections
-        #     )
-        # )
-
         if len(self.pending_acks) >= self.ACKS_THRESHOLD:
-            log.info("Send {} acks".format(len(self.pending_acks)))
+            log.debug(f"Send {len(self.pending_acks)} acks")
 
             try:
-                self._send(types.MsgsAck(list(self.pending_acks)), False)
+                await self._send(raw.types.MsgsAck(msg_ids=list(self.pending_acks)), False)
             except (OSError, TimeoutError):
                 pass
             else:
                 self.pending_acks.clear()
 
-    def ping(self):
-        log.debug("PingThread started")
+    async def ping_worker(self):
+        log.info("PingTask started")
 
         while True:
-            self.ping_thread_event.wait(self.PING_INTERVAL)
-
-            if self.ping_thread_event.is_set():
+            try:
+                await asyncio.wait_for(self.ping_task_event.wait(), self.PING_INTERVAL)
+            except asyncio.TimeoutError:
+                pass
+            else:
                 break
 
             try:
-                self._send(functions.Ping(0), False)
-            except (OSError, TimeoutError):
+                await self._send(
+                    raw.functions.PingDelayDisconnect(
+                        ping_id=0, disconnect_delay=self.WAIT_TIMEOUT + 10
+                    ), False
+                )
+            except (OSError, TimeoutError, RPCError):
                 pass
 
-        log.debug("PingThread stopped")
+        log.info("PingTask stopped")
 
-    def next_salt(self):
-        log.debug("NextSaltThread started")
+    async def next_salt_worker(self):
+        log.info("NextSaltTask started")
 
         while True:
             now = datetime.now()
 
             # Seconds to wait until middle-overlap, which is
             # 15 minutes before/after the current/next salt end/start time
-            dt = (self.current_salt.valid_until - now).total_seconds() - 900
+            valid_until = datetime.fromtimestamp(self.current_salt.valid_until)
+            dt = (valid_until - now).total_seconds() - 900
 
-            log.debug("Current salt: {} | Next salt in {:.0f}m {:.0f}s ({})".format(
-                self.current_salt.salt,
-                dt // 60,
-                dt % 60,
+            log.info("Next salt in {:.0f}m {:.0f}s ({})".format(
+                dt // 60, dt % 60,
                 now + timedelta(seconds=dt)
             ))
 
-            self.next_salt_thread_event.wait(dt)
-
-            if self.next_salt_thread_event.is_set():
+            try:
+                await asyncio.wait_for(self.next_salt_task_event.wait(), dt)
+            except asyncio.TimeoutError:
+                pass
+            else:
                 break
 
             try:
-                self.current_salt = self._send(
-                    functions.GetFutureSalts(1)).salts[0]
-            except (OSError, TimeoutError):
+                self.current_salt = (await self._send(raw.functions.GetFutureSalts(num=1))).salts[0]
+            except (OSError, TimeoutError, RPCError):
                 self.connection.close()
                 break
 
-        log.debug("NextSaltThread stopped")
+        log.info("NextSaltTask stopped")
 
-    def recv(self):
-        log.debug("RecvThread started")
+    async def network_worker(self):
+        log.info("NetworkTask started")
 
         while True:
-            packet = self.connection.recv()
+            packet = await self.connection.recv()
 
-            if packet is None or (len(packet) == 4 and Int.read(BytesIO(packet)) == -404):
+            if packet is None or len(packet) == 4:
+                if packet:
+                    log.warning(f'Server sent "{Int.read(BytesIO(packet))}"')
+
                 if self.is_connected.is_set():
-                    Thread(target=self.restart, name="RestartThread").start()
+                    self.loop.create_task(self.restart())
+
                 break
 
-            self.recv_queue.put(packet)
+            self.loop.create_task(self.handle_packet(packet))
 
-        log.debug("RecvThread stopped")
+        log.info("NetworkTask stopped")
 
-    def _send(self, data: Object, wait_response: bool = True):
+    async def _send(self, data: TLObject, wait_response: bool = True, timeout: float = WAIT_TIMEOUT):
         message = self.msg_factory(data)
         msg_id = message.msg_id
 
         if wait_response:
             self.results[msg_id] = Result()
 
-        payload = self.pack(message)
+        log.debug(f"Sent:\n{message}")
+
+        if len(message) <= self.EXECUTOR_SIZE_THRESHOLD:
+            payload = mtproto.pack(
+                message,
+                self.current_salt.salt,
+                self.session_id,
+                self.auth_key,
+                self.auth_key_id
+            )
+        else:
+            payload = await self.loop.run_in_executor(
+                self.executor,
+                mtproto.pack,
+                message,
+                self.current_salt.salt,
+                self.session_id,
+                self.auth_key,
+                self.auth_key_id
+            )
 
         try:
-            self.connection.send(payload)
+            await self.connection.send(payload)
         except OSError as e:
             self.results.pop(msg_id, None)
             raise e
 
         if wait_response:
-            self.results[msg_id].event.wait(self.WAIT_TIMEOUT)
-            result = self.results.pop(msg_id).value
+            try:
+                await asyncio.wait_for(self.results[msg_id].event.wait(), timeout)
+            except asyncio.TimeoutError:
+                pass
+            finally:
+                result = self.results.pop(msg_id).value
 
             if result is None:
                 raise TimeoutError
-            elif isinstance(result, types.RpcError):
-                Error.raise_it(result, type(data))
+            elif isinstance(result, raw.types.RpcError):
+                if isinstance(data, (raw.functions.InvokeWithoutUpdates, raw.functions.InvokeWithTakeout)):
+                    data = data.query
+
+                RPCError.raise_it(result, type(data))
+            elif isinstance(result, raw.types.BadMsgNotification):
+                raise Exception(self.BAD_MSG_DESCRIPTION.get(
+                    result.error_code,
+                    f"Error code {result.error_code}"
+                ))
             else:
                 return result
 
-    def send(self, data: Object):
-        for i in range(self.MAX_RETRIES):
-            self.is_connected.wait()
+    async def send(
+        self,
+        data: TLObject,
+        retries: int = MAX_RETRIES,
+        timeout: float = WAIT_TIMEOUT,
+        sleep_threshold: float = SLEEP_THRESHOLD
+    ):
+        try:
+            await asyncio.wait_for(self.is_connected.wait(), self.WAIT_TIMEOUT)
+        except asyncio.TimeoutError:
+            pass
 
-            try:
-                return self._send(data)
-            except (OSError, TimeoutError):
-                log.warning("Retrying {}".format(type(data)))
-                continue
+        if isinstance(data, (raw.functions.InvokeWithoutUpdates, raw.functions.InvokeWithTakeout)):
+            query = data.query
         else:
-            return None
+            query = data
+
+        query = ".".join(query.QUALNAME.split(".")[1:])
+
+        while True:
+            try:
+                return await self._send(data, timeout=timeout)
+            except FloodWait as e:
+                amount = e.x
+
+                if amount > sleep_threshold:
+                    raise
+
+                log.warning(
+                    f'[{self.client.session_name}] Sleeping for {amount}s (required by "{query}")')
+
+                await asyncio.sleep(amount)
+            except (OSError, TimeoutError, InternalServerError) as e:
+                if retries == 0:
+                    raise e from None
+
+                (log.warning if retries < 2 else log.info)(
+                    f'[{Session.MAX_RETRIES - retries + 1}] Retrying "{query}" due to {e}')
+
+                await asyncio.sleep(0.5)
+
+                return await self.send(data, retries - 1, timeout)
