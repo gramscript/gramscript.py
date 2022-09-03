@@ -1,0 +1,1 @@
+from .media import Venue, Video, VideoNote, Voice, Document, PhotoSize, UserProfilePhotos, Audio, Contact, Location, File, Dice, InputMedia, InputMediaAnimation, InputMediaAudio, InputMediaDocument, InputMediaPhoto, InputMediaVideo
