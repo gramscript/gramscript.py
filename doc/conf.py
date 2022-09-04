@@ -21,8 +21,8 @@ master_doc = 'index'
 
 project = u'gramscript'
 year = datetime.now().year
-copyright = u'%d, Nick Lee' % year
-author = u'Nick Lee'
+copyright = u'%d, kalanakt' % year
+author = u'kalanakt'
 
 
 version = __version__
@@ -123,7 +123,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (master_doc, 'gramscript.tex', u'gramscript Documentation',
-     u'Nick Lee', 'manual'),
+     u'kalanakt', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

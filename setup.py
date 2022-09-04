@@ -63,16 +63,16 @@ setup(
 
     install_requires=install_requires,
 
-    version=version,
+    version="1.0.2",
 
     description='Python framework for Telegram Bot API',
 
     long_description='',
 
-    url='https://github.com/nickoala/gramscript',
+    url='https://github.com/gramscript/gramscript',
 
-    author='Nick Lee',
-    author_email='lee1nick@yahoo.ca',
+    author='kalanakt',
+    author_email='e19198@eng.pdn.ac.lk',
 
     license='MIT',
 
