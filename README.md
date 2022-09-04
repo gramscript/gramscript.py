@@ -7,6 +7,15 @@
 
   <p align="center">Powerful, MTProto API framework in Python for users and bots</p>
     <p align="center">
+<!-- <p align='center'>
+  <img alt="GitHub Sparkline" src="https://github.com/gramscript/gramscript">
+</p> -->
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/gramscript/gramscript?logo=files&logoColor=f72585&style=social"></a>
+<a href="https://www.codefactor.io/repository/github/gramscript/gramscript/overview/main"><img src="https://www.codefactor.io/repository/github/kalanakt/all-url-uploader/badge/main" alt="CodeFactor" /></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img alt="GitHub issues" src="https://img.shields.io/github/issues-raw/gramscript/gramscript?color=8eecf5&logo=anaconda&logoColor=06d6a0&style=social"></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img alt="GitHub" src="https://img.shields.io/github/license/gramscript/gramscript?logo=adguard&logoColor=390099&style=social"></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/gramscript/gramscript?color=90e0ef&logoColor=ff4d6d&style=social"></a>
+<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/gramscript/gramscript?logo=electron&logoColor=89fc00&style=social"></a>
 <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
 <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
 <a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
