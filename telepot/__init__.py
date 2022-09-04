@@ -1,3 +1,6 @@
+import inspect
+from . import api
+from . import helper
 import sys
 import io
 import time
@@ -75,6 +78,7 @@ all_content_types = [
     'channel_chat_created', 'migrate_to_chat_id', 'migrate_from_chat_id', 'pinned_message',
     'new_chat_members', 'invoice', 'successful_payment'
 ]
+
 
 def glance(msg, flavor='chat', long=False):
     """
@@ -170,7 +174,7 @@ def flance(msg, long=False):
     """
     f = flavor(msg)
     g = glance(msg, flavor=f, long=long)
-    return f,g
+    return f, g
 
 
 def peel(event):
@@ -211,6 +215,7 @@ def origin_identifier(msg):
     else:
         raise ValueError()
 
+
 def message_identifier(msg):
     """
     Extract an identifier for message editing. Useful with :meth:`telepot.Bot.editMessageText`
@@ -225,6 +230,7 @@ def message_identifier(msg):
     else:
         raise ValueError()
 
+
 def _dismantle_message_identifier(f):
     if isinstance(f, tuple):
         if len(f) == 2:
@@ -235,6 +241,7 @@ def _dismantle_message_identifier(f):
             raise ValueError()
     else:
         return {'inline_message_id': f}
+
 
 def _split_input_media_array(media_array):
     def ensure_dict(input_media):
@@ -257,7 +264,7 @@ def _split_input_media_array(media_array):
             x += 1
             name = 'media' + str(x)
             if name in used_names:
-                continue;
+                continue
             yield name
 
     def split_media(input_media, name_generator):
@@ -282,7 +289,8 @@ def _split_input_media_array(media_array):
 
     ms = [ensure_dict(m) for m in media_array]
 
-    used_names = [given_attach_name(m) for m in ms if given_attach_name(m) is not None]
+    used_names = [given_attach_name(m)
+                  for m in ms if given_attach_name(m) is not None]
     name_generator = attach_name_generator(used_names)
 
     splitted = [split_media(m, name_generator) for m in ms]
@@ -297,14 +305,14 @@ PY_3 = sys.version_info.major >= 3
 _string_type = str if PY_3 else basestring
 _file_type = io.IOBase if PY_3 else file
 
+
 def _isstring(s):
     return isinstance(s, _string_type)
+
 
 def _isfile(f):
     return isinstance(f, _file_type)
 
-
-from . import helper
 
 def flavor_router(routing_table):
     router = helper.Router(flavor, routing_table)
@@ -318,16 +326,17 @@ class _BotBase(object):
 
 
 def _strip(params, more=[]):
-    return {key: value for key,value in params.items() if key not in ['self']+more}
+    return {key: value for key, value in params.items() if key not in ['self']+more}
+
 
 def _rectify(params):
     def make_jsonable(value):
         if isinstance(value, list):
             return [make_jsonable(v) for v in value]
         elif isinstance(value, dict):
-            return {k:make_jsonable(v) for k,v in value.items() if v is not None}
+            return {k: make_jsonable(v) for k, v in value.items() if v is not None}
         elif isinstance(value, tuple) and hasattr(value, '_asdict'):
-            return {k:make_jsonable(v) for k,v in value._asdict().items() if v is not None}
+            return {k: make_jsonable(v) for k, v in value._asdict().items() if v is not None}
         else:
             return value
 
@@ -335,15 +344,13 @@ def _rectify(params):
         v = make_jsonable(value)
 
         if isinstance(v, (dict, list)):
-            return json.dumps(v, separators=(',',':'))
+            return json.dumps(v, separators=(',', ':'))
         else:
             return v
 
     # remove None, then json-serialize if needed
-    return {k: flatten(v) for k,v in params.items() if v is not None}
+    return {k: flatten(v) for k, v in params.items() if v is not None}
 
-
-from . import api
 
 class Bot(_BotBase):
     class Scheduler(threading.Thread):
@@ -359,7 +366,8 @@ class Bot(_BotBase):
         def __init__(self):
             super(Bot.Scheduler, self).__init__()
             self._eventq = []
-            self._lock = threading.RLock()  # reentrant lock to allow locked method calling locked method
+            # reentrant lock to allow locked method calling locked method
+            self._lock = threading.RLock()
             self._event_handler = None
 
         def _locked(fn):
@@ -473,8 +481,8 @@ class Bot(_BotBase):
                                               'callback_query': lambda msg: self.on_callback_query(msg),
                                               'inline_query': lambda msg: self.on_inline_query(msg),
                                               'chosen_inline_result': lambda msg: self.on_chosen_inline_result(msg)})
-                                              # use lambda to delay evaluation of self.on_ZZZ to runtime because
-                                              # I don't want to require defining all methods right here.
+        # use lambda to delay evaluation of self.on_ZZZ to runtime because
+        # I don't want to require defining all methods right here.
 
     @property
     def scheduler(self):
@@ -1053,7 +1061,8 @@ class Bot(_BotBase):
         try:
             d = dest if _isfile(dest) else open(dest, 'wb')
 
-            r = api.download((self._token, f['file_path']), preload_content=False)
+            r = api.download(
+                (self._token, f['file_path']), preload_content=False)
 
             while 1:
                 data = r.read(self._file_chunk_size)
@@ -1188,7 +1197,8 @@ class Bot(_BotBase):
                     if len(result) > 0:
                         # No sort. Trust server to give messages in correct order.
                         # Update offset to max(update_id) + 1
-                        offset = max([relay_to_collector(update) for update in result]) + 1
+                        offset = max([relay_to_collector(update)
+                                     for update in result]) + 1
 
                 except exception.BadHTTPResponse as e:
                     traceback.print_exc()
@@ -1236,7 +1246,7 @@ class Bot(_BotBase):
             max_id = None                 # max update_id passed to callback
             buffer = collections.deque()  # keep those updates which skip some update_id
             qwait = None                  # how long to wait for updates,
-                                          # because buffer's content has to be returned in time.
+            # because buffer's content has to be returned in time.
 
             while 1:
                 try:
@@ -1253,11 +1263,14 @@ class Bot(_BotBase):
 
                         # clear contagious updates in buffer
                         if len(buffer) > 0:
-                            buffer.popleft()  # first element belongs to update just received, useless now.
+                            # first element belongs to update just received, useless now.
+                            buffer.popleft()
                             while 1:
                                 try:
                                     if type(buffer[0]) is dict:
-                                        max_id = relay_to_collector(buffer.popleft())  # updates that arrived earlier, handle them.
+                                        # updates that arrived earlier, handle them.
+                                        max_id = relay_to_collector(
+                                            buffer.popleft())
                                     else:
                                         break  # gap, no more contagious updates
                                 except IndexError:
@@ -1273,7 +1286,8 @@ class Bot(_BotBase):
                             # buffer too short, lengthen it
                             expire = time.time() + maxhold
                             for a in range(nbuf, update['update_id']-max_id-1):
-                                buffer.append(expire)  # put expiry time in gaps
+                                # put expiry time in gaps
+                                buffer.append(expire)
                             buffer.append(update)
 
                     else:
@@ -1321,9 +1335,11 @@ class Bot(_BotBase):
             message_thread = threading.Thread(target=get_from_telegram_server)
         elif isinstance(source, queue.Queue):
             if ordered:
-                message_thread = threading.Thread(target=get_from_queue, args=(source,))
+                message_thread = threading.Thread(
+                    target=get_from_queue, args=(source,))
             else:
-                message_thread = threading.Thread(target=get_from_queue_unordered, args=(source,))
+                message_thread = threading.Thread(
+                    target=get_from_queue_unordered, args=(source,))
         else:
             raise ValueError('Invalid source')
 
@@ -1339,8 +1355,6 @@ class Bot(_BotBase):
             while 1:
                 time.sleep(10)
 
-
-import inspect
 
 class SpeakerBot(Bot):
     def __init__(self, token):
@@ -1382,7 +1396,8 @@ class DelegatorBot(SpeakerBot):
             func, args, kwargs = delegate
             return threading.Thread(target=func, args=args, kwargs=kwargs)
         else:
-            raise RuntimeError('Delegate does not have the required methods, is not callable, and is not a valid tuple.')
+            raise RuntimeError(
+                'Delegate does not have the required methods, is not callable, and is not a valid tuple.')
 
     def handle(self, msg):
         self._mic.send(msg)
@@ -1392,7 +1407,7 @@ class DelegatorBot(SpeakerBot):
 
             if id is None:
                 continue
-            elif isinstance(id, collections.Hashable):
+            elif isinstance(id, collections.abc.Hashable):
                 if id not in dict or not dict[id].is_alive():
                     d = make_delegate((self, msg, id))
                     d = self._ensure_startable(d)

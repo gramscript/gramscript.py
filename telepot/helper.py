@@ -7,14 +7,87 @@ import re
 import inspect
 from functools import partial
 from . import filtering, exception
-from . import (
-    flavor, chat_flavors, inline_flavors, is_event,
-    message_identifier, origin_identifier)
 
 try:
     import Queue as queue
 except ImportError:
     import queue
+
+chat_flavors = ['chat']
+inline_flavors = ['inline_query', 'chosen_inline_result']
+
+
+def origin_identifier(msg):
+    """
+    Extract the message identifier of a callback query's origin. Returned value
+    is guaranteed to be a tuple.
+
+    ``msg`` is expected to be ``callback_query``.
+    """
+    if 'message' in msg:
+        return msg['message']['chat']['id'], msg['message']['message_id']
+    elif 'inline_message_id' in msg:
+        return msg['inline_message_id'],
+    else:
+        raise ValueError()
+
+
+def message_identifier(msg):
+    """
+    Extract an identifier for message editing. Useful with :meth:`telepot.Bot.editMessageText`
+    and similar methods. Returned value is guaranteed to be a tuple.
+
+    ``msg`` is expected to be ``chat`` or ``choson_inline_result``.
+    """
+    if 'chat' in msg and 'message_id' in msg:
+        return msg['chat']['id'], msg['message_id']
+    elif 'inline_message_id' in msg:
+        return msg['inline_message_id'],
+    else:
+        raise ValueError()
+
+
+def flavor(msg):
+    """
+    Return flavor of message or event.
+
+    A message's flavor may be one of these:
+
+    - ``chat``
+    - ``callback_query``
+    - ``inline_query``
+    - ``chosen_inline_result``
+    - ``shipping_query``
+    - ``pre_checkout_query``
+
+    An event's flavor is determined by the single top-level key.
+    """
+    if 'message_id' in msg:
+        return 'chat'
+    elif 'id' in msg and 'chat_instance' in msg:
+        return 'callback_query'
+    elif 'id' in msg and 'query' in msg:
+        return 'inline_query'
+    elif 'result_id' in msg:
+        return 'chosen_inline_result'
+    elif 'id' in msg and 'shipping_address' in msg:
+        return 'shipping_query'
+    elif 'id' in msg and 'total_amount' in msg:
+        return 'pre_checkout_query'
+    else:
+        top_keys = list(msg.keys())
+        if len(top_keys) == 1:
+            return top_keys[0]
+
+        raise exception.BadFlavor(msg)
+
+
+def is_event(msg):
+    """
+    Return whether the message looks like an event. That is, whether it has a flavor
+    that starts with an underscore.
+    """
+    return flavor(msg).startswith('_')
 
 
 class Microphone(object):
@@ -130,7 +203,7 @@ class Sender(object):
                        'sendVenue',
                        'sendContact',
                        'sendGame',
-                       'sendChatAction',]:
+                       'sendChatAction', ]:
             setattr(self, method, partial(getattr(bot, method), chat_id))
             # Essentially doing:
             #   self.sendMessage = partial(bot.sendMessage, chat_id)
@@ -225,7 +298,8 @@ class Editor(object):
                        'deleteMessage',
                        'editMessageLiveLocation',
                        'stopMessageLiveLocation']:
-            setattr(self, method, partial(getattr(bot, method), msg_identifier))
+            setattr(self, method, partial(
+                getattr(bot, method), msg_identifier))
 
 
 class Answerer(object):
@@ -417,7 +491,8 @@ class CallbackQueryCoordinator(object):
         if contains(message_kw, 'reply_markup'):
             reply_markup = filtering.pick(message_kw, 'reply_markup')
             if contains(reply_markup, 'inline_keyboard'):
-                inline_keyboard = filtering.pick(reply_markup, 'inline_keyboard')
+                inline_keyboard = filtering.pick(
+                    reply_markup, 'inline_keyboard')
                 for array in inline_keyboard:
                     if any(filter(lambda button: contains(button, 'callback_data'), array)):
                         return True
@@ -534,14 +609,14 @@ class CallbackQueryCoordinator(object):
                         'sendContact',
                         'sendGame',
                         'sendInvoice',
-                        'sendChatAction',]
+                        'sendChatAction', ]
 
         for method in send_methods:
             setattr(proxy, method, self.augment_send(getattr(bot, method)))
 
         edit_methods = ['editMessageText',
                         'editMessageCaption',
-                        'editMessageReplyMarkup',]
+                        'editMessageReplyMarkup', ]
 
         for method in edit_methods:
             setattr(proxy, method, self.augment_edit(getattr(bot, method)))
@@ -597,6 +672,7 @@ class SafeDict(dict):
 
 _cqc_origins = SafeDict()
 
+
 class InterceptCallbackQueryMixin(object):
     """
     Install a :class:`.CallbackQueryCoordinator` to capture callback query
@@ -629,13 +705,16 @@ class InterceptCallbackQueryMixin(object):
         else:
             cqc_enable = (intercept_callback_query,) * 2
 
-        self._callback_query_coordinator = self.CallbackQueryCoordinator(self.id, origin_set, *cqc_enable)
+        self._callback_query_coordinator = self.CallbackQueryCoordinator(
+            self.id, origin_set, *cqc_enable)
         cqc = self._callback_query_coordinator
         cqc.configure(self.listener)
 
         self.__bot = self._bot  # keep original version of bot
-        self._bot = cqc.augment_bot(self._bot)  # modify send* and edit* methods
-        self.on_message = cqc.augment_on_message(self.on_message)  # modify on_message()
+        # modify send* and edit* methods
+        self._bot = cqc.augment_bot(self._bot)
+        self.on_message = cqc.augment_on_message(
+            self.on_message)  # modify on_message()
 
         super(InterceptCallbackQueryMixin, self).__init__(*args, **kwargs)
 
@@ -669,8 +748,8 @@ class IdleEventCoordinator(object):
         # Ensure a new event is scheduled always
         finally:
             self._timeout_event = self._scheduler.event_later(
-                                      self._timeout_seconds,
-                                      ('_idle', {'seconds': self._timeout_seconds}))
+                self._timeout_seconds,
+                ('_idle', {'seconds': self._timeout_seconds}))
 
     def augment_on_message(self, handler):
         """
@@ -715,7 +794,8 @@ class IdleTerminateMixin(object):
     IdleEventCoordinator = IdleEventCoordinator
 
     def __init__(self, timeout, *args, **kwargs):
-        self._idle_event_coordinator = self.IdleEventCoordinator(self.scheduler, timeout)
+        self._idle_event_coordinator = self.IdleEventCoordinator(
+            self.scheduler, timeout)
         idlec = self._idle_event_coordinator
         idlec.refresh()  # start timer
         self.on_message = idlec.augment_on_message(self.on_message)
@@ -755,6 +835,7 @@ class StandardEventScheduler(object):
     Events scheduled through this object always have the second-level ``source`` key fixed,
     while the flavor and other data may be customized.
     """
+
     def __init__(self, scheduler, event_space, source_id):
         self._base = scheduler
         self._event_space = event_space
@@ -769,7 +850,8 @@ class StandardEventScheduler(object):
         Configure a :class:`.Listener` to capture events with this object's
         event space and source id.
         """
-        listener.capture([{re.compile('^_.+'): {'source': {'space': self._event_space, 'id': self._source_id}}}])
+        listener.capture([{re.compile(
+            '^_.+'): {'source': {'space': self._event_space, 'id': self._source_id}}}])
 
     def make_event_data(self, flavor, data):
         """
@@ -823,7 +905,8 @@ class StandardEventMixin(object):
     StandardEventScheduler = StandardEventScheduler
 
     def __init__(self, event_space, *args, **kwargs):
-        self._scheduler = self.StandardEventScheduler(self.bot.scheduler, event_space, self.id)
+        self._scheduler = self.StandardEventScheduler(
+            self.bot.scheduler, event_space, self.id)
         self._scheduler.configure(self.listener)
         super(StandardEventMixin, self).__init__(*args, **kwargs)
 
@@ -897,7 +980,8 @@ class UserContext(ListenerContext):
 
 class CallbackQueryOriginContext(ListenerContext):
     def __init__(self, bot, context_id, *args, **kwargs):
-        super(CallbackQueryOriginContext, self).__init__(bot, context_id, *args, **kwargs)
+        super(CallbackQueryOriginContext, self).__init__(
+            bot, context_id, *args, **kwargs)
         self._origin = context_id
         self._editor = Editor(self.bot, self._origin)
 
@@ -1023,9 +1107,9 @@ class Router(object):
         k = self.key_function(msg)
 
         if isinstance(k, (tuple, list)):
-            key, args, kwargs = {1: tuple(k) + ((),{}),
+            key, args, kwargs = {1: tuple(k) + ((), {}),
                                  2: tuple(k) + ({},),
-                                 3: tuple(k),}[len(k)]
+                                 3: tuple(k), }[len(k)]
         else:
             key, args, kwargs = k, (), {}
 
@@ -1036,7 +1120,8 @@ class Router(object):
             if None in self.routing_table:
                 fn = self.routing_table[None]
             else:
-                raise RuntimeError('No handler for key: %s, and default handler not defined' % str(e.args))
+                raise RuntimeError(
+                    'No handler for key: %s, and default handler not defined' % str(e.args))
 
         return fn(msg, *args, **kwargs)
 
@@ -1045,6 +1130,7 @@ class DefaultRouterMixin(object):
     """
     Install a default :class:`.Router` and the instance method ``on_message()``.
     """
+
     def __init__(self, *args, **kwargs):
         self._router = Router(flavor, {'chat': lambda msg: self.on_chat_message(msg),
                                        'callback_query': lambda msg: self.on_callback_query(msg),
@@ -1053,8 +1139,8 @@ class DefaultRouterMixin(object):
                                        'shipping_query': lambda msg: self.on_shipping_query(msg),
                                        'pre_checkout_query': lambda msg: self.on_pre_checkout_query(msg),
                                        '_idle': lambda event: self.on__idle(event)})
-                                       # use lambda to delay evaluation of self.on_ZZZ to runtime because
-                                       # I don't want to require defining all methods right here.
+        # use lambda to delay evaluation of self.on_ZZZ to runtime because
+        # I don't want to require defining all methods right here.
 
         super(DefaultRouterMixin, self).__init__(*args, **kwargs)
 
@@ -1099,7 +1185,8 @@ class ChatHandler(ChatContext,
         self.listener.capture([{'chat': {'id': self.chat_id}}])
 
         if include_callback_query:
-            self.listener.capture([{'message': {'chat': {'id': self.chat_id}}}])
+            self.listener.capture(
+                [{'message': {'chat': {'id': self.chat_id}}}])
 
 
 @openable
@@ -1122,10 +1209,12 @@ class UserHandler(UserContext,
         if flavors == 'all':
             self.listener.capture([{'from': {'id': self.user_id}}])
         else:
-            self.listener.capture([lambda msg: flavor(msg) in flavors, {'from': {'id': self.user_id}}])
+            self.listener.capture([lambda msg: flavor(msg) in flavors, {
+                                  'from': {'id': self.user_id}}])
 
         if include_callback_query:
-            self.listener.capture([{'message': {'chat': {'id': self.user_id}}}])
+            self.listener.capture(
+                [{'message': {'chat': {'id': self.user_id}}}])
 
 
 class InlineUserHandler(UserHandler):
@@ -1133,7 +1222,8 @@ class InlineUserHandler(UserHandler):
         """
         A delegate to handle a user's inline-related actions.
         """
-        super(InlineUserHandler, self).__init__(seed_tuple, flavors=inline_flavors, **kwargs)
+        super(InlineUserHandler, self).__init__(
+            seed_tuple, flavors=inline_flavors, **kwargs)
 
 
 @openable
@@ -1150,7 +1240,8 @@ class CallbackQueryOriginHandler(CallbackQueryOriginContext,
 
         self.listener.capture([
             lambda msg:
-                flavor(msg) == 'callback_query' and origin_identifier(msg) == self.origin
+                flavor(msg) == 'callback_query' and origin_identifier(
+                    msg) == self.origin
         ])
 
 
@@ -1167,4 +1258,5 @@ class InvoiceHandler(InvoiceContext,
         super(InvoiceHandler, self).__init__(bot, seed, **kwargs)
 
         self.listener.capture([{'invoice_payload': self.payload}])
-        self.listener.capture([{'successful_payment': {'invoice_payload': self.payload}}])
+        self.listener.capture(
+            [{'successful_payment': {'invoice_payload': self.payload}}])
