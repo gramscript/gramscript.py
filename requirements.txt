@@ -1,0 +1,4 @@
+setuptools
+pprint
+functools
+urlib2
