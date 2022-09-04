@@ -7,7 +7,7 @@
 <!-- <p align='center'>
   <img alt="GitHub Sparkline" src="https://github.com/gramscript/gramscript">
 </p> -->
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/gramscript/gramscript?logo=files&logoColor=f72585"></a>
+<a href=""><img alt="GitHub code size in bytes" src="https://img.shields.io/github/languages/code-size/gramscript/gramscript?logo=files&logoColor=f72585"></a>
 <a href="https://www.codefactor.io/repository/github/gramscript/gramscript.py/overview/main"><img src="https://www.codefactor.io/repository/github/gramscript/gramscript.py/badge/main" alt="CodeFactor" /></a>
 <a href="https://github.com/gramscript/gramscript.py" target="_blank"><img alt="GitHub issues" src="https://img.shields.io/github/issues-raw/gramscript/gramscript?color=8eecf5&logo=anaconda&logoColor=06d6a0"></a>
 <a href="https://github.com/gramscript/gramscript.py" target="_blank"><img alt="GitHub" src="https://img.shields.io/github/license/gramscript/gramscript?logo=adguard&logoColor=390099"></a>
