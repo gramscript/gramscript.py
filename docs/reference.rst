@@ -42,7 +42,7 @@ Some modules do not have async counterparts, e.g. :mod:`gramscript.namedtuple` a
 :mod:`gramscript.exception`, because they are shared.
 
 Try to combine this reading with the provided
-`examples <https://github.com/nickoala/gramscript/tree/master/examples>`_ .
+`examples <https://github.com/gramscript/gramscript/tree/master/examples>`_ .
 One example is worth a thousand words. I hope they make things clear.
 
 Basic Bot
@@ -101,7 +101,7 @@ want to implement your own ordering logic, :class:`.Webhook` should not be used.
 In async version, a task of :meth:`.run_forever` should be created instead of
 :meth:`.run_as_thread`.
 
-Refer to `webhook examples <https://github.com/nickoala/gramscript/tree/master/examples/webhook>`_
+Refer to `webhook examples <https://github.com/gramscript/gramscript/tree/master/examples/webhook>`_
 for usage.
 
 .. autoclass:: gramscript.loop.OrderedWebhook

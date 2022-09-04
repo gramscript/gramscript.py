@@ -40,7 +40,7 @@ html_theme_options = {
     'description': 'Python framework for Telegram Bot API',
     'show_powered_by': False,
     'fixed_sidebar': True,
-    'github_user': 'nickoala',
+    'github_user': 'gramscript',
     'github_repo': 'gramscript',
     'github_type': 'star',
 }
