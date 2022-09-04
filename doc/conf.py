@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from gramscript import __version__
 import sys
 import os
 from datetime import datetime
@@ -24,7 +25,6 @@ copyright = u'%d, Nick Lee' % year
 author = u'Nick Lee'
 
 
-from telepot import __version__
 version = __version__
 release = __version__
 
@@ -105,17 +105,17 @@ htmlhelp_basename = 'telepotdoc'
 # -- Options for LaTeX output ---------------------------------------------
 
 latex_elements = {
-# The paper size ('letterpaper' or 'a4paper').
-#'papersize': 'letterpaper',
+    # The paper size ('letterpaper' or 'a4paper').
+    # 'papersize': 'letterpaper',
 
-# The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+    # The font size ('10pt', '11pt' or '12pt').
+    # 'pointsize': '10pt',
 
-# Additional stuff for the LaTeX preamble.
-#'preamble': '',
+    # Additional stuff for the LaTeX preamble.
+    # 'preamble': '',
 
-# Latex figure (float) alignment
-#'figure_align': 'htbp',
+    # Latex figure (float) alignment
+    # 'figure_align': 'htbp',
 }
 
 # Grouping the document tree into LaTeX files. List of tuples

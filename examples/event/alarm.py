@@ -1,8 +1,8 @@
 import sys
 import time
-import telepot
-from telepot.loop import MessageLoop
-from telepot.delegate import per_chat_id, create_open, pave_event_space
+import gramscript
+from gramscript.loop import MessageLoop
+from gramscript.delegate import per_chat_id, create_open, pave_event_space
 
 """
 $ python3.6 alarm.py <token>
@@ -21,7 +21,8 @@ comments in the code:
 3. Provide the event spec when scheduling events
 """
 
-class AlarmSetter(telepot.helper.ChatHandler):
+
+class AlarmSetter(gramscript.helper.ChatHandler):
     def __init__(self, *args, **kwargs):
         super(AlarmSetter, self).__init__(*args, **kwargs)
 
@@ -46,14 +47,15 @@ class AlarmSetter(telepot.helper.ChatHandler):
             #      The second argument is the event spec: a 2-tuple of (flavor, dict).
             # Put any custom data in the dict. Retrieve them in the event-handling function.
             self.scheduler.event_later(delay, ('_alarm', {'payload': delay}))
-            self.sender.sendMessage('Got it. Alarm is set at %.1f seconds from now.' % delay)
+            self.sender.sendMessage(
+                'Got it. Alarm is set at %.1f seconds from now.' % delay)
         except ValueError:
             self.sender.sendMessage('Not a number. No alarm set.')
 
 
 TOKEN = sys.argv[1]
 
-bot = telepot.DelegatorBot(TOKEN, [
+bot = gramscript.DelegatorBot(TOKEN, [
     pave_event_space()(
         per_chat_id(), create_open, AlarmSetter, timeout=10),
 ])

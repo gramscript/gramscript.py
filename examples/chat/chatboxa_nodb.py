@@ -1,8 +1,8 @@
 import sys
 import asyncio
-import telepot
-from telepot.aio.loop import MessageLoop
-from telepot.aio.delegate import (
+import gramscript
+from gramscript.aio.loop import MessageLoop
+from gramscript.aio.delegate import (
     per_chat_id_in, per_application, call, create_open, pave_event_space)
 
 """
@@ -31,6 +31,8 @@ If the bot is killed, all messages are lost. It is an *example* after all.
 """
 
 # Simulate a database to store unread messages
+
+
 class UnreadStore(object):
     def __init__(self):
         self._db = {}
@@ -54,11 +56,11 @@ class UnreadStore(object):
 
     # Tells how many unread messages per chat_id
     def unread_per_chat(self):
-        return [(k,len(v)) for k,v in self._db.items()]
+        return [(k, len(v)) for k, v in self._db.items()]
 
 
 # Accept commands from owner. Give him unread messages.
-class OwnerHandler(telepot.aio.helper.ChatHandler):
+class OwnerHandler(gramscript.aio.helper.ChatHandler):
     def __init__(self, seed_tuple, store, **kwargs):
         super(OwnerHandler, self).__init__(seed_tuple, **kwargs)
         self._store = store
@@ -69,7 +71,7 @@ class OwnerHandler(telepot.aio.helper.ChatHandler):
             await self.sender.sendMessage(msg['text'])
 
     async def on_chat_message(self, msg):
-        content_type, chat_type, chat_id = telepot.glance(msg)
+        content_type, chat_type, chat_id = gramscript.glance(msg)
 
         if content_type != 'text':
             await self.sender.sendMessage("I don't understand")
@@ -109,30 +111,31 @@ class OwnerHandler(telepot.aio.helper.ChatHandler):
             await self.sender.sendMessage("I don't understand")
 
 
-class MessageSaver(telepot.aio.helper.Monitor):
+class MessageSaver(gramscript.aio.helper.Monitor):
     def __init__(self, seed_tuple, store, exclude):
         # The `capture` criteria means to capture all messages.
-        super(MessageSaver, self).__init__(seed_tuple, capture=[[lambda msg: not telepot.is_event(msg)]])
+        super(MessageSaver, self).__init__(seed_tuple, capture=[
+            [lambda msg: not gramscript.is_event(msg)]])
         self._store = store
         self._exclude = exclude
 
     # Store every message, except those whose sender is in the exclude list, or non-text messages.
     def on_chat_message(self, msg):
-        content_type, chat_type, chat_id = telepot.glance(msg)
+        content_type, chat_type, chat_id = gramscript.glance(msg)
 
         if chat_id in self._exclude:
             print('Chat id %d is excluded.' % chat_id)
             return
 
         if content_type != 'text':
-            print('Content type %s is ignored.' % content_type)
+            print(f'Content type {content_type} is ignored.')
             return
 
-        print('Storing message: %s' % msg)
+        print(f'Storing message: {msg}')
         self._store.put(msg)
 
 
-class ChatBox(telepot.aio.DelegatorBot):
+class ChatBox(gramscript.aio.DelegatorBot):
     def __init__(self, token, owner_id):
         self._owner_id = owner_id
         self._seen = set()
@@ -144,7 +147,8 @@ class ChatBox(telepot.aio.DelegatorBot):
                 per_chat_id_in([owner_id]), create_open, OwnerHandler, self._store, timeout=20),
 
             # Only one MessageSaver is ever spawned for entire application.
-            (per_application(), create_open(MessageSaver, self._store, exclude=[owner_id])),
+            (per_application(), create_open(
+                MessageSaver, self._store, exclude=[owner_id])),
 
             # For senders never seen before, send him a welcome message.
             (self._is_newcomer, call(self._send_welcome)),
@@ -152,7 +156,7 @@ class ChatBox(telepot.aio.DelegatorBot):
 
     # seed-calculating function: use returned value to indicate whether to spawn a delegate
     def _is_newcomer(self, msg):
-        if telepot.is_event(msg):
+        if gramscript.is_event(msg):
             return None
 
         chat_id = msg['chat']['id']
@@ -163,7 +167,8 @@ class ChatBox(telepot.aio.DelegatorBot):
             return None  # No delegate spawned
 
         self._seen.add(chat_id)
-        return []  # non-hashable ==> delegates are independent, no seed association is made.
+        # non-hashable ==> delegates are independent, no seed association is made.
+        return []
 
     async def _send_welcome(self, seed_tuple):
         chat_id = seed_tuple[1]['chat']['id']

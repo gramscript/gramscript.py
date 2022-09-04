@@ -1,9 +1,9 @@
 import sys
 import asyncio
 from aiohttp import web
-import telepot
-from telepot.aio.loop import OrderedWebhook
-from telepot.aio.delegate import per_chat_id, create_open, pave_event_space
+import gramscript
+from gramscript.aio.loop import OrderedWebhook
+from gramscript.aio.delegate import per_chat_id, create_open, pave_event_space
 
 """
 $ python3.5 aiohttp_countera.py <token> <listening_port> <webhook_url>
@@ -13,7 +13,8 @@ Webhook path is '/webhook', therefore:
 <webhook_url>: https://<base>/webhook
 """
 
-class MessageCounter(telepot.aio.helper.ChatHandler):
+
+class MessageCounter(gramscript.aio.helper.ChatHandler):
     def __init__(self, *args, **kwargs):
         super(MessageCounter, self).__init__(*args, **kwargs)
         self._count = 0
@@ -22,10 +23,12 @@ class MessageCounter(telepot.aio.helper.ChatHandler):
         self._count += 1
         await self.sender.sendMessage(self._count)
 
+
 async def feeder(request):
     data = await request.text()
     webhook.feed(data)
     return web.Response(body='OK'.encode('utf-8'))
+
 
 async def init(app, bot):
     app.router.add_route('GET', '/webhook', feeder)
@@ -41,7 +44,7 @@ URL = sys.argv[3]
 loop = asyncio.get_event_loop()
 
 app = web.Application(loop=loop)
-bot = telepot.aio.DelegatorBot(TOKEN, [
+bot = gramscript.aio.DelegatorBot(TOKEN, [
     pave_event_space()(
         per_chat_id(), create_open, MessageCounter, timeout=10)],
     loop=loop)

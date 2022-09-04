@@ -1,13 +1,14 @@
 import sys
 import time
-import telepot
-import telepot.namedtuple
-from telepot.routing import by_content_type, make_content_type_routing_table
-from telepot.exception import NotEnoughRightsError
+import gramscript
+import gramscript.namedtuple
+from gramscript.routing import by_content_type, make_content_type_routing_table
+from gramscript.exception import NotEnoughRightsError
 
-class AdminBot(telepot.Bot):
+
+class AdminBot(gramscript.Bot):
     def on_chat_message(self, msg):
-        content_type, chat_type, chat_id = telepot.glance(msg)
+        content_type, chat_type, chat_id = gramscript.glance(msg)
 
         if 'edit_date' not in msg:
             self.sendMessage(chat_id, 'Edit the message, please.')
@@ -15,21 +16,22 @@ class AdminBot(telepot.Bot):
             self.sendMessage(chat_id, 'Add me to a group, please.')
 
             # Make a router to route `new_chat_member` and `left_chat_member`
-            r = telepot.helper.Router(by_content_type(), make_content_type_routing_table(self))
+            r = gramscript.helper.Router(
+                by_content_type(), make_content_type_routing_table(self))
 
             # Replace current handler with that router
             self._router.routing_table['chat'] = r.route
 
     def on_new_chat_member(self, msg, new_chat_member):
         print('New chat member:', new_chat_member)
-        content_type, chat_type, chat_id = telepot.glance(msg)
+        content_type, chat_type, chat_id = gramscript.glance(msg)
 
         r = self.getChat(chat_id)
         print(r)
 
         r = self.getChatAdministrators(chat_id)
         print(r)
-        print(telepot.namedtuple.ChatMemberArray(r))
+        print(gramscript.namedtuple.ChatMemberArray(r))
 
         r = self.getChatMembersCount(chat_id)
         print(r)

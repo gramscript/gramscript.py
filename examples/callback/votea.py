@@ -1,12 +1,12 @@
 import sys
 import asyncio
 from functools import reduce
-from telepot import glance, message_identifier
-import telepot.aio
-import telepot.aio.helper
-from telepot.aio.loop import MessageLoop
-from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
-from telepot.aio.delegate import (
+from gramscript import glance, message_identifier
+import gramscript.aio
+import gramscript.aio.helper
+from gramscript.aio.loop import MessageLoop
+from gramscript.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+from gramscript.aio.delegate import (
     per_chat_id, create_open, pave_event_space, include_callback_query_chat_id)
 
 """
@@ -23,16 +23,19 @@ It statically captures callback query according to the originating chat id.
 This is the chat-centric approach.
 """
 
-votes = dict()
+votes = {}
 
-class VoteCounter(telepot.aio.helper.ChatHandler):
+
+class VoteCounter(gramscript.aio.helper.ChatHandler):
     def __init__(self, *args, **kwargs):
         super(VoteCounter, self).__init__(*args, **kwargs)
 
         global votes
         if self.id in votes:
-            self._ballot_box, self._keyboard_msg_ident, self._expired_event, self._member_count = votes[self.id]
-            self._editor = telepot.aio.helper.Editor(self.bot, self._keyboard_msg_ident) if self._keyboard_msg_ident else None
+            self._ballot_box, self._keyboard_msg_ident, self._expired_event, self._member_count = votes[
+                self.id]
+            self._editor = gramscript.aio.helper.Editor(
+                self.bot, self._keyboard_msg_ident) if self._keyboard_msg_ident else None
         else:
             self._ballot_box = None
             self._keyboard_msg_ident = None
@@ -60,25 +63,30 @@ class VoteCounter(telepot.aio.helper.ChatHandler):
             await self._init_ballot()
 
     def _count_votes(self):
-        yes = reduce(lambda a,b: a+(1 if b=='yes' else 0), self._ballot_box.values(), 0)
-        no = reduce(lambda a,b: a+(1 if b=='no' else 0), self._ballot_box.values(), 0)
+        yes = reduce(lambda a, b: a+(1 if b == 'yes' else 0),
+                     self._ballot_box.values(), 0)
+        no = reduce(lambda a, b: a+(1 if b == 'no' else 0),
+                    self._ballot_box.values(), 0)
         return yes, no, self._member_count-yes-no
 
     async def _init_ballot(self):
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-                       InlineKeyboardButton(text='Yes', callback_data='yes'),
-                       InlineKeyboardButton(text='Nah!!!!', callback_data='no'),
-                   ]])
+            InlineKeyboardButton(text='Yes', callback_data='yes'),
+            InlineKeyboardButton(text='Nah!!!!', callback_data='no'),
+        ]])
         sent = await self.sender.sendMessage("Let's Vote ...", reply_markup=keyboard)
 
-        self._member_count = await self.administrator.getChatMembersCount() - 1  # exclude myself, the bot
+        # exclude myself, the bot
+        self._member_count = await self.administrator.getChatMembersCount() - 1
 
         self._ballot_box = {}
         self._keyboard_msg_ident = message_identifier(sent)
-        self._editor = telepot.aio.helper.Editor(self.bot, self._keyboard_msg_ident)
+        self._editor = gramscript.aio.helper.Editor(
+            self.bot, self._keyboard_msg_ident)
 
         # Generate an expiry event 30 seconds later
-        self._expired_event = self.scheduler.event_later(30, ('_vote_expired', {'seconds': 30}))
+        self._expired_event = self.scheduler.event_later(
+            30, ('_vote_expired', {'seconds': 30}))
 
     async def _close_ballot(self):
         self.scheduler.cancel(self._expired_event)
@@ -91,14 +99,12 @@ class VoteCounter(telepot.aio.helper.ChatHandler):
 
     async def on_callback_query(self, msg):
         query_id, from_id, query_data = glance(msg, flavor='callback_query')
-
         if from_id in self._ballot_box:
-            await self.bot.answerCallbackQuery(query_id, text='You have already voted %s' % self._ballot_box[from_id])
+            await self.bot.answerCallbackQuery(query_id, text=f'You have already voted {self._ballot_box[from_id]}')
+
         else:
             await self.bot.answerCallbackQuery(query_id, text='Ok')
             self._ballot_box[from_id] = query_data
-
-        # Announce results if everyone has voted.
         if len(self._ballot_box) >= self._member_count:
             result = self._count_votes()
             await self._close_ballot()
@@ -117,7 +123,8 @@ class VoteCounter(telepot.aio.helper.ChatHandler):
             except KeyError:
                 pass
         else:
-            votes[self.id] = (self._ballot_box, self._keyboard_msg_ident, self._expired_event, self._member_count)
+            votes[self.id] = (self._ballot_box, self._keyboard_msg_ident,
+                              self._expired_event, self._member_count)
 
         from pprint import pprint
         print('%d closing ...' % self.id)
@@ -126,7 +133,7 @@ class VoteCounter(telepot.aio.helper.ChatHandler):
 
 TOKEN = sys.argv[1]
 
-bot = telepot.aio.DelegatorBot(TOKEN, [
+bot = gramscript.aio.DelegatorBot(TOKEN, [
     include_callback_query_chat_id(
         pave_event_space())(
             per_chat_id(types=['group']), create_open, VoteCounter, timeout=10),

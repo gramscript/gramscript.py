@@ -2,14 +2,14 @@ import sys
 import time
 from datetime import datetime, timedelta
 from functools import reduce
-import telepot
-import telepot.helper
-from telepot.loop import MessageLoop
-from telepot.namedtuple import (
+import gramscript
+import gramscript.helper
+from gramscript.loop import MessageLoop
+from gramscript.namedtuple import (
     InlineQueryResultArticle, InputTextMessageContent,
     InlineKeyboardMarkup, InlineKeyboardButton,
     ReplyKeyboardMarkup, KeyboardButton)
-from telepot.delegate import (
+from gramscript.delegate import (
     per_inline_from_id, create_open, pave_event_space,
     intercept_callback_query_origin)
 
@@ -37,11 +37,12 @@ an inline keyboard) and answer-gathering (receiving callback query) in the same
 object.
 """
 
-user_ballots = telepot.helper.SafeDict()  # thread-safe dict
+user_ballots = gramscript.helper.SafeDict()  # thread-safe dict
 
-class DateCalculator(telepot.helper.InlineUserHandler,
-                     telepot.helper.AnswererMixin,
-                     telepot.helper.InterceptCallbackQueryMixin):
+
+class DateCalculator(gramscript.helper.InlineUserHandler,
+                     gramscript.helper.AnswererMixin,
+                     gramscript.helper.InterceptCallbackQueryMixin):
     def __init__(self, *args, **kwargs):
         super(DateCalculator, self).__init__(*args, **kwargs)
 
@@ -57,13 +58,16 @@ class DateCalculator(telepot.helper.InlineUserHandler,
 
     def on_inline_query(self, msg):
         def compute():
-            query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
+            query_id, from_id, query_string = gramscript.glance(
+                msg, flavor='inline_query')
             print('Inline query:', query_id, from_id, query_string)
 
-            weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+            weekdays = ['monday', 'tuesday', 'wednesday',
+                        'thursday', 'friday', 'saturday', 'sunday']
             query_string = query_string.lower()
 
-            query_weekdays = [day[0] for day in enumerate(weekdays) if day[1].startswith(query_string)]
+            query_weekdays = [day[0] for day in enumerate(
+                weekdays) if day[1].startswith(query_string)]
 
             def days_to(today, target):
                 d = target - today
@@ -71,31 +75,34 @@ class DateCalculator(telepot.helper.InlineUserHandler,
                     d += 7
                 return timedelta(days=d)
 
-            today = datetime.today()
-            deltas = [days_to(today.weekday(), target) for target in query_weekdays]
+            today = datetime.now()
+            deltas = [days_to(today.weekday(), target)
+                      for target in query_weekdays]
 
             def make_result(today, week_delta, day_delta):
                 future = today + week_delta + day_delta
 
-                n = 0 if future.weekday() > today.weekday() else 1
-                n += int(week_delta.days / 7)
-
+                n = (0 if future.weekday() > today.weekday()
+                     else 1) + int(week_delta.days / 7)
                 return InlineQueryResultArticle(
-                           id=future.strftime('%Y-%m-%d'),
-                           title=('next '*n if n > 0 else 'this ') + weekdays[future.weekday()].capitalize(),
-                           input_message_content=InputTextMessageContent(
-                               message_text=future.strftime('%A, %Y-%m-%d')
-                           ),
-                           reply_markup=InlineKeyboardMarkup(
-                               inline_keyboard=[[
-                                   InlineKeyboardButton(text='Yes', callback_data='yes'),
-                                   InlineKeyboardButton(text='No', callback_data='no'),
-                               ]]
-                           )
-                       )
+                    id=future.strftime('%Y-%m-%d'),
+                    title=('next '*n if n > 0 else 'this ') +
+                    weekdays[future.weekday()].capitalize(),
+                    input_message_content=InputTextMessageContent(
+                        message_text=future.strftime('%A, %Y-%m-%d')
+                    ),
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[[
+                            InlineKeyboardButton(
+                                text='Yes', callback_data='yes'),
+                            InlineKeyboardButton(
+                                text='No', callback_data='no'),
+                        ]]
+                    )
+                )
 
             results = []
-            for i in range(0,3):
+            for i in range(3):
                 weeks = timedelta(weeks=i)
                 for d in deltas:
                     results.append(make_result(today, weeks, d))
@@ -117,28 +124,32 @@ class DateCalculator(telepot.helper.InlineUserHandler,
         if 'inline_message_id' in msg:
             inline_message_id = msg['inline_message_id']
             ballot = self._ballots[inline_message_id]
-
-            query_id, from_id, query_data = telepot.glance(msg, flavor='callback_query')
+            query_id, from_id, query_data = gramscript.glance(
+                msg, flavor='callback_query')
             if from_id in ballot:
-                self.bot.answerCallbackQuery(query_id, text='You have already voted %s' % ballot[from_id])
+                self.bot.answerCallbackQuery(
+                    query_id, text=f'You have already voted {ballot[from_id]}')
+
             else:
                 self.bot.answerCallbackQuery(query_id, text='Ok')
                 ballot[from_id] = query_data
 
     def _count(self, ballot):
-        yes = reduce(lambda a,b: a+(1 if b=='yes' else 0), ballot.values(), 0)
-        no = reduce(lambda a,b: a+(1 if b=='no' else 0), ballot.values(), 0)
+        yes = reduce(lambda a, b: a+(1 if b == 'yes' else 0),
+                     ballot.values(), 0)
+        no = reduce(lambda a, b: a+(1 if b == 'no' else 0), ballot.values(), 0)
         return yes, no
 
     def on__expired(self, event):
-        evt = telepot.peel(event)
+        evt = gramscript.peel(event)
         inline_message_id = evt['inline_message_id']
         suggested_date = evt['date']
 
         ballot = self._ballots[inline_message_id]
-        text = '%s\nYes: %d\nNo: %d' % ((suggested_date,) + self._count(ballot))
+        text = '%s\nYes: %d\nNo: %d' % (
+            (suggested_date,) + self._count(ballot))
 
-        editor = telepot.helper.Editor(self.bot, inline_message_id)
+        editor = gramscript.helper.Editor(self.bot, inline_message_id)
         editor.editMessageText(text=text, reply_markup=None)
 
         del self._ballots[inline_message_id]
@@ -152,7 +163,7 @@ class DateCalculator(telepot.helper.InlineUserHandler,
 
 TOKEN = sys.argv[1]
 
-bot = telepot.DelegatorBot(TOKEN, [
+bot = gramscript.DelegatorBot(TOKEN, [
     intercept_callback_query_origin(
         pave_event_space())(
             per_inline_from_id(), create_open, DateCalculator, timeout=10),

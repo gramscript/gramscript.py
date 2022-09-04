@@ -1,10 +1,12 @@
 import time
 import asyncio
-import telepot.aio
-from telepot.aio.loop import OrderedWebhook
+import gramscript.aio
+from gramscript.aio.loop import OrderedWebhook
+
 
 def u(update_id):
-    return { 'update_id': update_id, 'message': update_id }
+    return {'update_id': update_id, 'message': update_id}
+
 
 sequence = [
     u(1),  # initialize
@@ -67,6 +69,7 @@ sequence = [
     u(40),  # return
 ]
 
+
 async def feed():
     for update in sequence:
         if type(update) is dict:
@@ -75,10 +78,12 @@ async def feed():
         else:
             await asyncio.sleep(update)
 
+
 def handle(msg):
     print(msg)
 
-bot = telepot.aio.Bot('abc')
+
+bot = gramscript.aio.Bot('abc')
 webhook = OrderedWebhook(bot, handle)
 
 loop = asyncio.get_event_loop()

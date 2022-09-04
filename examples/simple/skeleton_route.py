@@ -2,11 +2,11 @@ import sys
 import time
 import threading
 import random
-import telepot
-from telepot.loop import MessageLoop
-from telepot.namedtuple import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, ForceReply
-from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
-from telepot.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent
+import gramscript
+from gramscript.loop import MessageLoop
+from gramscript.namedtuple import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, ForceReply
+from gramscript.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+from gramscript.namedtuple import InlineQueryResultArticle, InlineQueryResultPhoto, InputTextMessageContent
 
 """
 $ python3.5 skeleton_route.py <token>
@@ -33,8 +33,9 @@ It works like this:
 
 message_with_inline_keyboard = None
 
+
 def on_chat_message(msg):
-    content_type, chat_type, chat_id = telepot.glance(msg)
+    content_type, chat_type, chat_id = gramscript.glance(msg)
     print('Chat:', content_type, chat_type, chat_id)
 
     if content_type != 'text':
@@ -44,21 +45,27 @@ def on_chat_message(msg):
 
     if command == 'c':
         markup = ReplyKeyboardMarkup(keyboard=[
-                     ['Plain text', KeyboardButton(text='Text only')],
-                     [dict(text='Phone', request_contact=True), KeyboardButton(text='Location', request_location=True)],
-                 ])
-        bot.sendMessage(chat_id, 'Custom keyboard with various buttons', reply_markup=markup)
+            ['Plain text', KeyboardButton(text='Text only')],
+            [dict(text='Phone', request_contact=True), KeyboardButton(
+                text='Location', request_location=True)],
+        ])
+        bot.sendMessage(
+            chat_id, 'Custom keyboard with various buttons', reply_markup=markup)
     elif command == 'i':
         markup = InlineKeyboardMarkup(inline_keyboard=[
-                     [dict(text='Telegram URL', url='https://core.telegram.org/')],
-                     [InlineKeyboardButton(text='Callback - show notification', callback_data='notification')],
-                     [dict(text='Callback - show alert', callback_data='alert')],
-                     [InlineKeyboardButton(text='Callback - edit message', callback_data='edit')],
-                     [dict(text='Switch to using bot inline', switch_inline_query='initial query')],
-                 ])
+            [dict(text='Telegram URL', url='https://core.telegram.org/')],
+            [InlineKeyboardButton(
+                text='Callback - show notification', callback_data='notification')],
+            [dict(text='Callback - show alert', callback_data='alert')],
+            [InlineKeyboardButton(
+                text='Callback - edit message', callback_data='edit')],
+            [dict(text='Switch to using bot inline',
+                  switch_inline_query='initial query')],
+        ])
 
         global message_with_inline_keyboard
-        message_with_inline_keyboard = bot.sendMessage(chat_id, 'Inline keyboard with various buttons', reply_markup=markup)
+        message_with_inline_keyboard = bot.sendMessage(
+            chat_id, 'Inline keyboard with various buttons', reply_markup=markup)
     elif command == 'h':
         markup = ReplyKeyboardRemove()
         bot.sendMessage(chat_id, 'Hide custom keyboard', reply_markup=markup)
@@ -68,7 +75,7 @@ def on_chat_message(msg):
 
 
 def on_callback_query(msg):
-    query_id, from_id, data = telepot.glance(msg, flavor='callback_query')
+    query_id, from_id, data = gramscript.glance(msg, flavor='callback_query')
     print('Callback query:', query_id, from_id, data)
 
     if data == 'notification':
@@ -79,28 +86,31 @@ def on_callback_query(msg):
         global message_with_inline_keyboard
 
         if message_with_inline_keyboard:
-            msg_idf = telepot.message_identifier(message_with_inline_keyboard)
+            msg_idf = gramscript.message_identifier(
+                message_with_inline_keyboard)
             bot.editMessageText(msg_idf, 'NEW MESSAGE HERE!!!!!')
         else:
-            bot.answerCallbackQuery(query_id, text='No previous message to edit')
+            bot.answerCallbackQuery(
+                query_id, text='No previous message to edit')
 
 
 def on_inline_query(msg):
     def compute():
-        query_id, from_id, query_string = telepot.glance(msg, flavor='inline_query')
-        print('%s: Computing for: %s' % (threading.current_thread().name, query_string))
+        query_id, from_id, query_string = gramscript.glance(
+            msg, flavor='inline_query')
+        print(f'{threading.current_thread().name}: Computing for: {query_string}')
 
         articles = [InlineQueryResultArticle(
-                        id='abcde', title='Telegram', input_message_content=InputTextMessageContent(message_text='Telegram is a messaging app')),
-                    dict(type='article',
-                        id='fghij', title='Google', input_message_content=dict(message_text='Google is a search engine'))]
+            id='abcde', title='Telegram', input_message_content=InputTextMessageContent(message_text='Telegram is a messaging app')),
+            dict(type='article',
+                 id='fghij', title='Google', input_message_content=dict(message_text='Google is a search engine'))]
 
         photo1_url = 'https://core.telegram.org/file/811140934/1/tbDSLHSaijc/fdcc7b6d5fb3354adf'
         photo2_url = 'https://www.telegram.org/img/t_logo.png'
         photos = [InlineQueryResultPhoto(
-                      id='12345', photo_url=photo1_url, thumb_url=photo1_url),
-                  dict(type='photo',
-                      id='67890', photo_url=photo2_url, thumb_url=photo2_url)]
+            id='12345', photo_url=photo1_url, thumb_url=photo1_url),
+            dict(type='photo',
+                 id='67890', photo_url=photo2_url, thumb_url=photo2_url)]
 
         result_type = query_string[-1:].lower()
 
@@ -109,7 +119,7 @@ def on_inline_query(msg):
         elif result_type == 'p':
             return photos
         else:
-            results = articles if random.randint(0,1) else photos
+            results = articles if random.randint(0, 1) else photos
             if result_type == 'b':
                 return dict(results=results, switch_pm_text='Back to Bot', switch_pm_parameter='Optional_start_parameter')
             else:
@@ -119,14 +129,15 @@ def on_inline_query(msg):
 
 
 def on_chosen_inline_result(msg):
-    result_id, from_id, query_string = telepot.glance(msg, flavor='chosen_inline_result')
+    result_id, from_id, query_string = gramscript.glance(
+        msg, flavor='chosen_inline_result')
     print('Chosen Inline Result:', result_id, from_id, query_string)
 
 
 TOKEN = sys.argv[1]  # get token from command-line
 
-bot = telepot.Bot(TOKEN)
-answerer = telepot.helper.Answerer(bot)
+bot = gramscript.Bot(TOKEN)
+answerer = gramscript.helper.Answerer(bot)
 
 MessageLoop(bot, {'chat': on_chat_message,
                   'callback_query': on_callback_query,

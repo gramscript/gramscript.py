@@ -1,9 +1,11 @@
 import time
-import telepot
-from telepot.loop import OrderedWebhook
+import gramscript
+from gramscript.loop import OrderedWebhook
+
 
 def u(update_id):
-    return { 'update_id': update_id, 'message': update_id }
+    return {'update_id': update_id, 'message': update_id}
+
 
 sequence = [
     u(1),  # initialize
@@ -66,10 +68,12 @@ sequence = [
     u(40),  # return
 ]
 
-def handle(msg):
-    print msg
 
-bot = telepot.Bot('abc')
+def handle(msg):
+    print(msg)
+
+
+bot = gramscript.Bot('abc')
 webhook = OrderedWebhook(bot, handle)
 
 webhook.run_as_thread(maxhold=8)

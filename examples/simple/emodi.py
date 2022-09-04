@@ -1,8 +1,8 @@
 import sys
 import time
-import telepot
-import telepot.namedtuple
-from telepot.loop import MessageLoop
+import gramscript
+import gramscript.namedtuple
+from gramscript.loop import MessageLoop
 
 """
 $ python2.7 emodi.py <token>
@@ -15,24 +15,20 @@ on Python2.7.9/Raspbian. If you try it on other versions/platforms, the length-
 checking and substring-extraction below may not work as expected.
 """
 
+
 def handle(msg):
-    content_type, chat_type, chat_id = telepot.glance(msg)
-    m = telepot.namedtuple.Message(**msg)
+    content_type, chat_type, chat_id = gramscript.glance(msg)
+    m = gramscript.namedtuple.Message(**msg)
 
     if chat_id < 0:
         # group message
-        print 'Received a %s from %s, by %s' % (content_type, m.chat, m.from_)
+        print(f'Received a {content_type} from {m.chat}, by {m.from_}')
     else:
         # private message
-        print 'Received a %s from %s' % (content_type, m.chat)  # m.chat == m.from_
+        print(f'Received a {content_type} from {m.chat}')
 
     if content_type == 'text':
-        reply = ''
-
-        # For long messages, only return the first 10 characters.
-        if len(msg['text']) > 10:
-            reply = u'First 10 characters:\n'
-
+        reply = u'First 10 characters:\n' if len(msg['text']) > 10 else ''
         # Length-checking and substring-extraction may work differently
         # depending on Python versions and platforms. See above.
 
@@ -42,9 +38,9 @@ def handle(msg):
 
 TOKEN = sys.argv[1]  # get token from command-line
 
-bot = telepot.Bot(TOKEN)
+bot = gramscript.Bot(TOKEN)
 MessageLoop(bot, handle).run_as_thread()
-print 'Listening ...'
+print('Listening ...')
 
 # Keep the program running.
 while 1:

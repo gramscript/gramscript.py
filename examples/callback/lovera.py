@@ -1,11 +1,11 @@
 import sys
 import asyncio
-from telepot import message_identifier, glance
-import telepot.aio
-import telepot.aio.helper
-from telepot.aio.loop import MessageLoop
-from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
-from telepot.aio.delegate import (
+from gramscript import message_identifier, glance
+import gramscript.aio
+import gramscript.aio.helper
+from gramscript.aio.loop import MessageLoop
+from gramscript.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+from gramscript.aio.delegate import (
     per_chat_id, create_open, pave_event_space, include_callback_query_chat_id)
 
 """
@@ -26,11 +26,12 @@ Proposing is a private matter. This bot only works in a private chat.
 
 propose_records = dict()
 
-class Lover(telepot.aio.helper.ChatHandler):
+
+class Lover(gramscript.aio.helper.ChatHandler):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-                   InlineKeyboardButton(text='Yes', callback_data='yes'),
-                   InlineKeyboardButton(text='um ...', callback_data='no'),
-               ]])
+        InlineKeyboardButton(text='Yes', callback_data='yes'),
+        InlineKeyboardButton(text='um ...', callback_data='no'),
+    ]])
 
     def __init__(self, *args, **kwargs):
         super(Lover, self).__init__(*args, **kwargs)
@@ -39,7 +40,8 @@ class Lover(telepot.aio.helper.ChatHandler):
         global propose_records
         if self.id in propose_records:
             self._count, self._edit_msg_ident = propose_records[self.id]
-            self._editor = telepot.aio.helper.Editor(self.bot, self._edit_msg_ident) if self._edit_msg_ident else None
+            self._editor = gramscript.aio.helper.Editor(
+                self.bot, self._edit_msg_ident) if self._edit_msg_ident else None
         else:
             self._count = 0
             self._edit_msg_ident = None
@@ -48,7 +50,7 @@ class Lover(telepot.aio.helper.ChatHandler):
     async def _propose(self):
         self._count += 1
         sent = await self.sender.sendMessage('%d. Would you marry me?' % self._count, reply_markup=self.keyboard)
-        self._editor = telepot.aio.helper.Editor(self.bot, sent)
+        self._editor = gramscript.aio.helper.Editor(self.bot, sent)
         self._edit_msg_ident = message_identifier(sent)
 
     async def _cancel_last(self):
@@ -84,7 +86,7 @@ class Lover(telepot.aio.helper.ChatHandler):
 
 TOKEN = sys.argv[1]
 
-bot = telepot.aio.DelegatorBot(TOKEN, [
+bot = gramscript.aio.DelegatorBot(TOKEN, [
     include_callback_query_chat_id(
         pave_event_space())(
             per_chat_id(types=['private']), create_open, Lover, timeout=10),

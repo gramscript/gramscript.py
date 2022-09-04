@@ -1,8 +1,8 @@
 import sys
 import time
-import telepot
-from telepot.loop import MessageLoop
-from telepot.delegate import per_chat_id, create_open, pave_event_space
+import gramscript
+from gramscript.loop import MessageLoop
+from gramscript.delegate import per_chat_id, create_open, pave_event_space
 
 """
 $ python2.7 counter.py <token>
@@ -11,7 +11,8 @@ Counts number of messages a user has sent. Starts over if silent for 10 seconds.
 Illustrates the basic usage of `DelegateBot` and `ChatHandler`.
 """
 
-class MessageCounter(telepot.helper.ChatHandler):
+
+class MessageCounter(gramscript.helper.ChatHandler):
     def __init__(self, *args, **kwargs):
         super(MessageCounter, self).__init__(*args, **kwargs)
         self._count = 0
@@ -23,7 +24,7 @@ class MessageCounter(telepot.helper.ChatHandler):
 
 TOKEN = sys.argv[1]  # get token from command-line
 
-bot = telepot.DelegatorBot(TOKEN, [
+bot = gramscript.DelegatorBot(TOKEN, [
     pave_event_space()(
         per_chat_id(), create_open, MessageCounter, timeout=10
     ),

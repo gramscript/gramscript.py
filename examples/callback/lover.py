@@ -1,10 +1,10 @@
 import sys
 import time
-import telepot
-import telepot.helper
-from telepot.loop import MessageLoop
-from telepot.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
-from telepot.delegate import (
+import gramscript
+import gramscript.helper
+from gramscript.loop import MessageLoop
+from gramscript.namedtuple import InlineKeyboardMarkup, InlineKeyboardButton
+from gramscript.delegate import (
     per_chat_id, create_open, pave_event_space, include_callback_query_chat_id)
 
 """
@@ -23,13 +23,14 @@ This is the chat-centric approach.
 Proposing is a private matter. This bot only works in a private chat.
 """
 
-propose_records = telepot.helper.SafeDict()  # thread-safe dict
+propose_records = gramscript.helper.SafeDict()  # thread-safe dict
 
-class Lover(telepot.helper.ChatHandler):
+
+class Lover(gramscript.helper.ChatHandler):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-                   InlineKeyboardButton(text='Yes', callback_data='yes'),
-                   InlineKeyboardButton(text='um ...', callback_data='no'),
-               ]])
+        InlineKeyboardButton(text='Yes', callback_data='yes'),
+        InlineKeyboardButton(text='um ...', callback_data='no'),
+    ]])
 
     def __init__(self, *args, **kwargs):
         super(Lover, self).__init__(*args, **kwargs)
@@ -38,7 +39,8 @@ class Lover(telepot.helper.ChatHandler):
         global propose_records
         if self.id in propose_records:
             self._count, self._edit_msg_ident = propose_records[self.id]
-            self._editor = telepot.helper.Editor(self.bot, self._edit_msg_ident) if self._edit_msg_ident else None
+            self._editor = gramscript.helper.Editor(
+                self.bot, self._edit_msg_ident) if self._edit_msg_ident else None
         else:
             self._count = 0
             self._edit_msg_ident = None
@@ -46,9 +48,10 @@ class Lover(telepot.helper.ChatHandler):
 
     def _propose(self):
         self._count += 1
-        sent = self.sender.sendMessage('%d. Would you marry me?' % self._count, reply_markup=self.keyboard)
-        self._editor = telepot.helper.Editor(self.bot, sent)
-        self._edit_msg_ident = telepot.message_identifier(sent)
+        sent = self.sender.sendMessage(
+            '%d. Would you marry me?' % self._count, reply_markup=self.keyboard)
+        self._editor = gramscript.helper.Editor(self.bot, sent)
+        self._edit_msg_ident = gramscript.message_identifier(sent)
 
     def _cancel_last(self):
         if self._editor:
@@ -60,19 +63,22 @@ class Lover(telepot.helper.ChatHandler):
         self._propose()
 
     def on_callback_query(self, msg):
-        query_id, from_id, query_data = telepot.glance(msg, flavor='callback_query')
+        query_id, from_id, query_data = gramscript.glance(
+            msg, flavor='callback_query')
 
         if query_data == 'yes':
             self._cancel_last()
             self.sender.sendMessage('Thank you!')
             self.close()
         else:
-            self.bot.answerCallbackQuery(query_id, text='Ok. But I am going to keep asking.')
+            self.bot.answerCallbackQuery(
+                query_id, text='Ok. But I am going to keep asking.')
             self._cancel_last()
             self._propose()
 
     def on__idle(self, event):
-        self.sender.sendMessage('I know you may need a little time. I will always be here for you.')
+        self.sender.sendMessage(
+            'I know you may need a little time. I will always be here for you.')
         self.close()
 
     def on_close(self, ex):
@@ -83,7 +89,7 @@ class Lover(telepot.helper.ChatHandler):
 
 TOKEN = sys.argv[1]
 
-bot = telepot.DelegatorBot(TOKEN, [
+bot = gramscript.DelegatorBot(TOKEN, [
     include_callback_query_chat_id(
         pave_event_space())(
             per_chat_id(types=['private']), create_open, Lover, timeout=10),

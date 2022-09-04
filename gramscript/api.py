@@ -1,4 +1,3 @@
-from curses import longname
 import filecmp
 import io
 import sys
@@ -96,7 +95,7 @@ PY_3 = sys.version_info.major >= 3
 
 
 def _fix_type(v):
-    return str(v) if isinstance(v, float if PY_3 else (longname, float)) else v
+    return str(v) if isinstance(v, float if PY_3 else (long, float)) else v
 
 
 def _compose_fields(req, **user_kw):

@@ -6,8 +6,8 @@ import pprint
 import sys
 import traceback
 import urllib.request
-import telepot
-import telepot.namedtuple
+import gramscript
+import gramscript.namedtuple
 
 """
 This script tests:
@@ -27,6 +27,7 @@ And send it a message anyway. It will print out your user id as an unauthorized 
 Ctrl-C to kill it, then run the proper command again.
 """
 
+
 def equivalent(data, nt):
     if type(data) is dict:
         keys = list(data.keys())
@@ -42,14 +43,16 @@ def equivalent(data, nt):
     elif type(data) is list:
         return all(map(equivalent, data, nt))
     else:
-        return data==nt
+        return data == nt
+
 
 def examine(result, type):
     try:
         print('Examining %s ......' % type)
 
         nt = type(**result)
-        assert equivalent(result, nt), 'Not equivalent:::::::::::::::\n%s\n::::::::::::::::\n%s' % (result, nt)
+        assert equivalent(
+            result, nt), 'Not equivalent:::::::::::::::\n%s\n::::::::::::::::\n%s' % (result, nt)
 
         pprint.pprint(result)
         pprint.pprint(nt)
@@ -60,8 +63,10 @@ def examine(result, type):
         if answer != 'y':
             exit(1)
 
+
 def send_everything_on_contact(msg):
-    content_type, chat_type, chat_id, msg_date, msg_id = telepot.glance(msg, long=True)
+    content_type, chat_type, chat_id, msg_date, msg_id = gramscript.glance(
+        msg, long=True)
 
     if chat_id != USER_ID:
         print('Unauthorized user:', msg['from']['id'])
@@ -70,40 +75,46 @@ def send_everything_on_contact(msg):
     print('Received message from ID: %d' % chat_id)
     print('Start sending various messages ...')
 
-    ##### forwardMessage
+    # forwardMessage
 
     r = bot.forwardMessage(chat_id, chat_id, msg_id)
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
 
-    ##### sendMessage
+    # sendMessage
 
-    r = bot.sendMessage(chat_id, 'Hello, I am going to send you a lot of things.', reply_to_message_id=msg_id)
-    examine(r, telepot.namedtuple.Message)
+    r = bot.sendMessage(
+        chat_id, 'Hello, I am going to send you a lot of things.', reply_to_message_id=msg_id)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
     r = bot.sendMessage(chat_id, '中文')
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
-    r = bot.sendMessage(chat_id, '*bold text*\n_italic text_\n[link](http://www.google.com)', parse_mode='Markdown')
-    examine(r, telepot.namedtuple.Message)
+    r = bot.sendMessage(
+        chat_id, '*bold text*\n_italic text_\n[link](http://www.google.com)', parse_mode='Markdown')
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
     bot.sendMessage(chat_id, 'http://www.yahoo.com\nwith web page preview')
     time.sleep(0.5)
 
-    bot.sendMessage(chat_id, 'http://www.yahoo.com\nno web page preview', disable_web_page_preview=True)
+    bot.sendMessage(chat_id, 'http://www.yahoo.com\nno web page preview',
+                    disable_web_page_preview=True)
     time.sleep(0.5)
 
     show_keyboard = {'keyboard': [['Yes', 'No'], ['Maybe', 'Maybe not']]}
     remove_keyboard = {'remove_keyboard': True}
     force_reply = {'force_reply': True}
 
-    nt_show_keyboard = telepot.namedtuple.ReplyKeyboardMarkup(**show_keyboard)
-    nt_remove_keyboard = telepot.namedtuple.ReplyKeyboardRemove(**remove_keyboard)
-    nt_force_reply = telepot.namedtuple.ForceReply(**force_reply)
+    nt_show_keyboard = gramscript.namedtuple.ReplyKeyboardMarkup(
+        **show_keyboard)
+    nt_remove_keyboard = gramscript.namedtuple.ReplyKeyboardRemove(
+        **remove_keyboard)
+    nt_force_reply = gramscript.namedtuple.ForceReply(**force_reply)
 
-    bot.sendMessage(chat_id, 'Here is a custom keyboard', reply_markup=show_keyboard)
+    bot.sendMessage(chat_id, 'Here is a custom keyboard',
+                    reply_markup=show_keyboard)
     time.sleep(0.5)
 
     bot.sendMessage(chat_id, 'Hiding it now.', reply_markup=nt_remove_keyboard)
@@ -112,34 +123,37 @@ def send_everything_on_contact(msg):
     bot.sendMessage(chat_id, 'Force reply', reply_markup=nt_force_reply)
     time.sleep(0.5)
 
-    ##### sendPhoto
+    # sendPhoto
 
     bot.sendChatAction(chat_id, 'upload_photo')
     r = bot.sendPhoto(chat_id, open('lighthouse.jpg', 'rb'))
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
     file_id = r['photo'][0]['file_id']
 
-    bot.sendPhoto(chat_id, file_id, caption='Show original message and keyboard', reply_to_message_id=msg_id, reply_markup=nt_show_keyboard)
+    bot.sendPhoto(chat_id, file_id, caption='Show original message and keyboard',
+                  reply_to_message_id=msg_id, reply_markup=nt_show_keyboard)
     time.sleep(0.5)
 
-    bot.sendPhoto(chat_id, file_id, caption='_Hide keyboard_', parse_mode='Markdown', reply_markup=remove_keyboard)
+    bot.sendPhoto(chat_id, file_id, caption='_Hide keyboard_',
+                  parse_mode='Markdown', reply_markup=remove_keyboard)
     time.sleep(0.5)
 
     furl = urllib.request.urlopen('http://i.imgur.com/35HSRQ6.png')
     bot.sendPhoto(chat_id, ('abc.jpg', furl))
     time.sleep(0.5)
 
-    bot.sendPhoto(chat_id, ('中文照片.jpg', open('lighthouse.jpg', 'rb')), caption='中文照片')
+    bot.sendPhoto(chat_id, ('中文照片.jpg', open(
+        'lighthouse.jpg', 'rb')), caption='中文照片')
     time.sleep(0.5)
 
-    ##### getFile
+    # getFile
 
     f = bot.getFile(file_id)
-    examine(f, telepot.namedtuple.File)
+    examine(f, gramscript.namedtuple.File)
 
-    ##### download_file, smaller than one chunk (65K)
+    # download_file, smaller than one chunk (65K)
 
     try:
         print('Downloading file to non-existent directory ...')
@@ -154,35 +168,38 @@ def send_everything_on_contact(msg):
     with open('down.2', 'wb') as down:
         bot.download_file(file_id, down)
 
-    ##### sendAudio
+    # sendAudio
     # Need one of `performer` or `title' for server to regard it as audio. Otherwise, server treats it as voice.
 
     bot.sendChatAction(chat_id, 'upload_audio')
     r = bot.sendAudio(chat_id, open('dgdg.mp3', 'rb'), title='Ringtone')
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
     file_id = r['audio']['file_id']
 
-    bot.sendAudio(chat_id, file_id, duration=6, performer='Ding Dong', title='Ringtone', reply_to_message_id=msg_id, reply_markup=show_keyboard)
+    bot.sendAudio(chat_id, file_id, duration=6, performer='Ding Dong',
+                  title='Ringtone', reply_to_message_id=msg_id, reply_markup=show_keyboard)
     time.sleep(0.5)
 
-    bot.sendAudio(chat_id, file_id, performer='Ding Dong', reply_markup=nt_remove_keyboard)
+    bot.sendAudio(chat_id, file_id, performer='Ding Dong',
+                  reply_markup=nt_remove_keyboard)
     time.sleep(0.5)
 
     bot.sendAudio(chat_id, ('中文歌.mp3', open('dgdg.mp3', 'rb')), title='中文歌')
     time.sleep(0.5)
 
-    ##### sendDocument
+    # sendDocument
 
     bot.sendChatAction(chat_id, 'upload_document')
     r = bot.sendDocument(chat_id, open('document.txt', 'rb'))
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
     file_id = r['document']['file_id']
 
-    bot.sendDocument(chat_id, file_id, reply_to_message_id=msg_id, reply_markup=nt_show_keyboard)
+    bot.sendDocument(chat_id, file_id, reply_to_message_id=msg_id,
+                     reply_markup=nt_show_keyboard)
     time.sleep(0.5)
 
     bot.sendDocument(chat_id, file_id, reply_markup=remove_keyboard)
@@ -191,31 +208,33 @@ def send_everything_on_contact(msg):
     bot.sendDocument(chat_id, ('中文文件.txt', open('document.txt', 'rb')))
     time.sleep(0.5)
 
-    ##### sendSticker
+    # sendSticker
 
     r = bot.sendSticker(chat_id, open('gandhi.png', 'rb'))
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
     file_id = r['sticker']['file_id']
 
-    bot.sendSticker(chat_id, file_id, reply_to_message_id=msg_id, reply_markup=show_keyboard)
+    bot.sendSticker(chat_id, file_id, reply_to_message_id=msg_id,
+                    reply_markup=show_keyboard)
     time.sleep(0.5)
 
     bot.sendSticker(chat_id, file_id, reply_markup=nt_remove_keyboard)
     time.sleep(0.5)
 
-    ##### sendVideo
+    # sendVideo
 
     bot.sendChatAction(chat_id, 'upload_video')
     r = bot.sendVideo(chat_id, open('hktraffic.mp4', 'rb'))
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
     try:
         file_id = r['video']['file_id']
 
-        bot.sendVideo(chat_id, file_id, duration=5, caption='Hong Kong traffic', reply_to_message_id=msg_id, reply_markup=nt_show_keyboard)
+        bot.sendVideo(chat_id, file_id, duration=5, caption='Hong Kong traffic',
+                      reply_to_message_id=msg_id, reply_markup=nt_show_keyboard)
         time.sleep(0.5)
         bot.sendVideo(chat_id, file_id, reply_markup=remove_keyboard)
         time.sleep(0.5)
@@ -226,63 +245,68 @@ def send_everything_on_contact(msg):
 
         file_id = r['document']['file_id']
 
-        bot.sendDocument(chat_id, file_id, reply_to_message_id=msg_id, reply_markup=nt_show_keyboard)
+        bot.sendDocument(
+            chat_id, file_id, reply_to_message_id=msg_id, reply_markup=nt_show_keyboard)
         time.sleep(0.5)
         bot.sendDocument(chat_id, file_id, reply_markup=remove_keyboard)
         time.sleep(0.5)
 
-    ##### download_file, multiple chunks
+    # download_file, multiple chunks
 
     print('Downloading file to down.3 ...')
     bot.download_file(file_id, 'down.3')
 
-    ##### sendVoice
+    # sendVoice
 
     r = bot.sendVoice(chat_id, open('example.ogg', 'rb'))
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
     file_id = r['voice']['file_id']
 
-    bot.sendVoice(chat_id, file_id, duration=6, reply_to_message_id=msg_id, reply_markup=show_keyboard)
+    bot.sendVoice(chat_id, file_id, duration=6,
+                  reply_to_message_id=msg_id, reply_markup=show_keyboard)
     time.sleep(0.5)
 
     bot.sendVoice(chat_id, file_id, reply_markup=nt_remove_keyboard)
     time.sleep(0.5)
 
-    ##### sendVideoNote
+    # sendVideoNote
 
     bot.sendVideoNote(chat_id, open('hktraffic.mp4', 'rb'), length=2)
 
-    ##### sendMediaGroup
+    # sendMediaGroup
 
     with open('lighthouse.jpg', 'rb') as f1, open('gandhi.png', 'rb') as f2, open('bookshelf.jpg', 'rb') as f3, open('saturn.jpg', 'rb') as f4:
         ms = [
-            telepot.namedtuple.InputMediaPhoto(media=f1),
-            telepot.namedtuple.InputMediaPhoto(media=('media2', f2)),
-            telepot.namedtuple.InputMediaPhoto(media='https://telegram.org/file/811140935/175c/FSf2aidnuaY.21715.gif/31dc2dbb6902dcef78'),
+            gramscript.namedtuple.InputMediaPhoto(media=f1),
+            gramscript.namedtuple.InputMediaPhoto(media=('media2', f2)),
+            gramscript.namedtuple.InputMediaPhoto(
+                media='https://telegram.org/file/811140935/175c/FSf2aidnuaY.21715.gif/31dc2dbb6902dcef78'),
             {'type': 'photo', 'media': ('media3', ('books.jpg', f3))},
             {'type': 'photo', 'media': f4},
         ]
         bot.sendMediaGroup(chat_id, ms)
 
-    ##### sendLocation
+    # sendLocation
 
     bot.sendChatAction(chat_id, 'find_location')
     r = bot.sendLocation(chat_id, 22.33, 114.18)  # Hong Kong
-    examine(r, telepot.namedtuple.Message)
+    examine(r, gramscript.namedtuple.Message)
     time.sleep(0.5)
 
-    bot.sendLocation(chat_id, 49.25, -123.1, reply_to_message_id=msg_id, reply_markup=nt_show_keyboard)  # Vancouver
+    bot.sendLocation(chat_id, 49.25, -123.1, reply_to_message_id=msg_id,
+                     reply_markup=nt_show_keyboard)  # Vancouver
     time.sleep(0.5)
 
-    bot.sendLocation(chat_id, -37.82, 144.97, reply_markup=remove_keyboard)  # Melbourne
+    bot.sendLocation(chat_id, -37.82, 144.97,
+                     reply_markup=remove_keyboard)  # Melbourne
     time.sleep(0.5)
 
     r = bot.sendLocation(chat_id, -37.82, 144.97, live_period=60)  # Melbourne
     time.sleep(3)
 
-    mif = telepot.message_identifier(r)
+    mif = gramscript.message_identifier(r)
     bot.editMessageLiveLocation(mif, -37.819, 144.97)
     time.sleep(1)
 
@@ -291,54 +315,62 @@ def send_everything_on_contact(msg):
 
     bot.stopMessageLiveLocation(mif)
 
-    ##### sendGame
+    # sendGame
 
     bot.sendGame(chat_id, 'sunchaser')
     time.sleep(0.5)
 
-    game_keyboard = telepot.namedtuple.InlineKeyboardMarkup(inline_keyboard=[[
-                        telepot.namedtuple.InlineKeyboardButton(text='Play now', callback_game=True),
-                        telepot.namedtuple.InlineKeyboardButton(text='How to play?', url='https://mygame.com/howto'),
-                    ]])
+    game_keyboard = gramscript.namedtuple.InlineKeyboardMarkup(inline_keyboard=[[
+        gramscript.namedtuple.InlineKeyboardButton(
+            text='Play now', callback_game=True),
+        gramscript.namedtuple.InlineKeyboardButton(
+            text='How to play?', url='https://mygame.com/howto'),
+    ]])
     bot.sendGame(chat_id, 'sunchaser', reply_markup=game_keyboard)
     time.sleep(0.5)
 
-    ##### Done sending messages
+    # Done sending messages
 
     bot.sendMessage(chat_id, 'I am done.')
+
 
 def get_user_profile_photos():
     print('Getting user profile photos ...')
 
     r = bot.getUserProfilePhotos(USER_ID)
-    examine(r, telepot.namedtuple.UserProfilePhotos)
+    examine(r, gramscript.namedtuple.UserProfilePhotos)
+
 
 expected_content_type = None
 content_type_iterator = iter([
-    'text', 'voice', 'sticker', 'photo', 'audio' ,'document', 'video', 'contact', 'location',
+    'text', 'voice', 'sticker', 'photo', 'audio', 'document', 'video', 'contact', 'location',
     'new_chat_member',  'new_chat_title', 'new_chat_photo',  'delete_chat_photo', 'left_chat_member'
 ])
+
 
 def see_every_content_types(msg):
     global expected_content_type, content_type_iterator
 
-    content_type, chat_type, chat_id = telepot.glance(msg)
+    content_type, chat_type, chat_id = gramscript.glance(msg)
     from_id = msg['from']['id']
 
     if chat_id != USER_ID and from_id != USER_ID:
         print('Unauthorized user:', chat_id, from_id)
         return
 
-    examine(msg, telepot.namedtuple.Message)
+    examine(msg, gramscript.namedtuple.Message)
     try:
         if content_type == expected_content_type:
             expected_content_type = next(content_type_iterator)
-            bot.sendMessage(chat_id, 'Please give me a %s.' % expected_content_type)
+            bot.sendMessage(chat_id, 'Please give me a %s.' %
+                            expected_content_type)
         else:
-            bot.sendMessage(chat_id, 'It is not a %s. Please give me a %s, please.' % (expected_content_type, expected_content_type))
+            bot.sendMessage(chat_id, 'It is not a %s. Please give me a %s, please.' % (
+                expected_content_type, expected_content_type))
     except StopIteration:
         # reply to sender because I am kicked from group already
         bot.sendMessage(from_id, 'Thank you. I am done.')
+
 
 def ask_for_various_messages():
     bot.message_loop(see_every_content_types)
@@ -348,13 +380,14 @@ def ask_for_various_messages():
 
     bot.sendMessage(USER_ID, 'Please give me a %s.' % expected_content_type)
 
+
 def test_webhook_getupdates_exclusive():
     bot.setWebhook('https://www.fake.com/fake', open('old.cert', 'rb'))
     print('Fake webhook set.')
 
     try:
         bot.getUpdates()
-    except telepot.exception.TelegramError as e:
+    except gramscript.exception.TelegramError as e:
         print("%d: %s" % (e.error_code, e.description))
         print('As expected, getUpdates() produces an error.')
 
@@ -368,7 +401,7 @@ USER_ID = int(sys.argv[2])
 # Edit /etc/tinyproxy/tinyproxy.conf to allow access
 # telepot.api.set_proxy('http://192.168.0.103:8888')
 
-bot = telepot.Bot(TOKEN)
+bot = gramscript.Bot(TOKEN)
 
 test_webhook_getupdates_exclusive()
 get_user_profile_photos()

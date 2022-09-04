@@ -2,16 +2,16 @@ import sys
 import asyncio
 from datetime import datetime, timedelta
 from functools import reduce
-from telepot import glance, peel
-import telepot.aio
-from telepot.aio.loop import MessageLoop
-from telepot.aio.helper import (
+from gramscript import glance, peel
+import gramscript.aio
+from gramscript.aio.loop import MessageLoop
+from gramscript.aio.helper import (
     InlineUserHandler, AnswererMixin, InterceptCallbackQueryMixin, Editor)
-from telepot.namedtuple import (
+from gramscript.namedtuple import (
     InlineQueryResultArticle, InputTextMessageContent,
     InlineKeyboardMarkup, InlineKeyboardButton,
     ReplyKeyboardMarkup, KeyboardButton)
-from telepot.aio.delegate import (
+from gramscript.aio.delegate import (
     per_inline_from_id, create_open, pave_event_space,
     intercept_callback_query_origin)
 
@@ -39,7 +39,8 @@ an inline keyboard) and answer-gathering (receiving callback query) in the same
 object.
 """
 
-user_ballots = dict()
+user_ballots = {}
+
 
 class DateCalculator(InlineUserHandler,
                      AnswererMixin,
@@ -59,13 +60,15 @@ class DateCalculator(InlineUserHandler,
 
     def on_inline_query(self, msg):
         def compute():
-            query_id, from_id, query_string = glance(msg, flavor='inline_query')
+            query_id, from_id, query_string = glance(
+                msg, flavor='inline_query')
             print('Inline query:', query_id, from_id, query_string)
+            weekdays = ['monday', 'tuesday', 'wednesday',
+                        'thursday', 'friday', 'saturday', 'sunday']
 
-            weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
             query_string = query_string.lower()
-
-            query_weekdays = [day[0] for day in enumerate(weekdays) if day[1].startswith(query_string)]
+            query_weekdays = [day[0] for day in enumerate(
+                weekdays) if day[1].startswith(query_string)]
 
             def days_to(today, target):
                 d = target - today
@@ -73,35 +76,21 @@ class DateCalculator(InlineUserHandler,
                     d += 7
                 return timedelta(days=d)
 
-            today = datetime.today()
-            deltas = [days_to(today.weekday(), target) for target in query_weekdays]
+            today = datetime.now()
+            deltas = [days_to(today.weekday(), target)
+                      for target in query_weekdays]
 
             def make_result(today, week_delta, day_delta):
                 future = today + week_delta + day_delta
-
-                n = 0 if future.weekday() > today.weekday() else 1
-                n += int(week_delta.days / 7)
-
-                return InlineQueryResultArticle(
-                           id=future.strftime('%Y-%m-%d'),
-                           title=('next '*n if n > 0 else 'this ') + weekdays[future.weekday()].capitalize(),
-                           input_message_content=InputTextMessageContent(
-                               message_text=future.strftime('%A, %Y-%m-%d')
-                           ),
-                           reply_markup=InlineKeyboardMarkup(
-                               inline_keyboard=[[
-                                   InlineKeyboardButton(text='Yes', callback_data='yes'),
-                                   InlineKeyboardButton(text='No', callback_data='no'),
-                               ]]
-                           )
-                       )
+                n = (0 if future.weekday() > today.weekday()
+                     else 1) + int(week_delta.days / 7)
+                return InlineQueryResultArticle(id=future.strftime('%Y-%m-%d'), title=('next ' * n if n > 0 else 'this ') + weekdays[future.weekday()].capitalize(), input_message_content=InputTextMessageContent(message_text=future.strftime('%A, %Y-%m-%d')), reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text='Yes', callback_data='yes'), InlineKeyboardButton(text='No', callback_data='no')]]))
 
             results = []
-            for i in range(0,3):
+            for i in range(3):
                 weeks = timedelta(weeks=i)
                 for d in deltas:
                     results.append(make_result(today, weeks, d))
-
             return results
 
         self.answerer.answer(msg, compute)
@@ -119,17 +108,19 @@ class DateCalculator(InlineUserHandler,
         if 'inline_message_id' in msg:
             inline_message_id = msg['inline_message_id']
             ballot = self._ballots[inline_message_id]
-
-            query_id, from_id, query_data = glance(msg, flavor='callback_query')
+            query_id, from_id, query_data = glance(
+                msg, flavor='callback_query')
             if from_id in ballot:
-                await self.bot.answerCallbackQuery(query_id, text='You have already voted %s' % ballot[from_id])
+                await self.bot.answerCallbackQuery(query_id, text=f'You have already voted {ballot[from_id]}')
+
             else:
                 await self.bot.answerCallbackQuery(query_id, text='Ok')
                 ballot[from_id] = query_data
 
     def _count(self, ballot):
-        yes = reduce(lambda a,b: a+(1 if b=='yes' else 0), ballot.values(), 0)
-        no = reduce(lambda a,b: a+(1 if b=='no' else 0), ballot.values(), 0)
+        yes = reduce(lambda a, b: a+(1 if b == 'yes' else 0),
+                     ballot.values(), 0)
+        no = reduce(lambda a, b: a+(1 if b == 'no' else 0), ballot.values(), 0)
         return yes, no
 
     async def on__expired(self, event):
@@ -138,7 +129,8 @@ class DateCalculator(InlineUserHandler,
         suggested_date = evt['date']
 
         ballot = self._ballots[inline_message_id]
-        text = '%s\nYes: %d\nNo: %d' % ((suggested_date,) + self._count(ballot))
+        text = '%s\nYes: %d\nNo: %d' % (
+            (suggested_date,) + self._count(ballot))
 
         editor = Editor(self.bot, inline_message_id)
         await editor.editMessageText(text=text, reply_markup=None)
@@ -154,7 +146,7 @@ class DateCalculator(InlineUserHandler,
 
 TOKEN = sys.argv[1]
 
-bot = telepot.aio.DelegatorBot(TOKEN, [
+bot = gramscript.aio.DelegatorBot(TOKEN, [
     intercept_callback_query_origin(
         pave_event_space())(
             per_inline_from_id(), create_open, DateCalculator, timeout=10),
