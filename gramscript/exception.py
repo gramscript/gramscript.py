@@ -1,10 +1,12 @@
 import sys
 
-class TelepotException(Exception):
+
+class gramscriptException(Exception):
     """ Base class of following exceptions. """
     pass
 
-class BadFlavor(TelepotException):
+
+class BadFlavor(gramscriptException):
     def __init__(self, offender):
         super(BadFlavor, self).__init__(offender)
 
@@ -12,9 +14,11 @@ class BadFlavor(TelepotException):
     def offender(self):
         return self.args[0]
 
+
 PY_3 = sys.version_info.major >= 3
 
-class BadHTTPResponse(TelepotException):
+
+class BadHTTPResponse(gramscriptException):
     """
     All requests to Bot API should result in a JSON response. If non-JSON, this
     exception is raised. While it is hard to pinpoint exactly when this might happen,
@@ -40,7 +44,8 @@ class BadHTTPResponse(TelepotException):
     def response(self):
         return self.args[2]
 
-class EventNotFound(TelepotException):
+
+class EventNotFound(gramscriptException):
     def __init__(self, event):
         super(EventNotFound, self).__init__(event)
 
@@ -48,7 +53,8 @@ class EventNotFound(TelepotException):
     def event(self):
         return self.args[0]
 
-class WaitTooLong(TelepotException):
+
+class WaitTooLong(gramscriptException):
     def __init__(self, seconds):
         super(WaitTooLong, self).__init__(seconds)
 
@@ -56,17 +62,20 @@ class WaitTooLong(TelepotException):
     def seconds(self):
         return self.args[0]
 
+
 class IdleTerminate(WaitTooLong):
     pass
 
-class StopListening(TelepotException):
+
+class StopListening(gramscriptException):
     pass
 
-class TelegramError(TelepotException):
+
+class TelegramError(gramscriptException):
     """
     To indicate erroneous situations, Telegram returns a JSON object containing
     an *error code* and a *description*. This will cause a ``TelegramError`` to
-    be raised. Before raising a generic ``TelegramError``, telepot looks for
+    be raised. Before raising a generic ``TelegramError``, gramscript looks for
     a more specific subclass that "matches" the error. If such a class exists,
     an exception of that specific subclass is raised. This allows you to either
     catch specific errors or to cast a wide net (by a catch-all ``TelegramError``).
@@ -92,20 +101,26 @@ class TelegramError(TelepotException):
     def json(self):
         return self.args[2]
 
+
 class UnauthorizedError(TelegramError):
     DESCRIPTION_PATTERNS = ['unauthorized']
+
 
 class BotWasKickedError(TelegramError):
     DESCRIPTION_PATTERNS = ['bot.*kicked']
 
+
 class BotWasBlockedError(TelegramError):
     DESCRIPTION_PATTERNS = ['bot.*blocked']
+
 
 class TooManyRequestsError(TelegramError):
     DESCRIPTION_PATTERNS = ['too *many *requests']
 
+
 class MigratedToSupergroupChatError(TelegramError):
     DESCRIPTION_PATTERNS = ['migrated.*supergroup *chat']
+
 
 class NotEnoughRightsError(TelegramError):
     DESCRIPTION_PATTERNS = ['not *enough *rights']

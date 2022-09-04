@@ -1,3 +1,4 @@
+from concurrent.futures._base import CancelledError
 import asyncio
 import traceback
 from .. import filtering, helper, exception
@@ -58,8 +59,6 @@ class Listener(helper.Listener):
             if any(map(lambda p: filtering.match_all(msg, p), self._patterns)):
                 return msg
 
-
-from concurrent.futures._base import CancelledError
 
 class Answerer(object):
     """
@@ -226,9 +225,9 @@ class Router(helper.Router):
         k = self.key_function(msg)
 
         if isinstance(k, (tuple, list)):
-            key, args, kwargs = {1: tuple(k) + ((),{}),
+            key, args, kwargs = {1: tuple(k) + ((), {}),
                                  2: tuple(k) + ({},),
-                                 3: tuple(k),}[len(k)]
+                                 3: tuple(k), }[len(k)]
         else:
             key, args, kwargs = k, (), {}
 
@@ -239,7 +238,8 @@ class Router(helper.Router):
             if None in self.routing_table:
                 fn = self.routing_table[None]
             else:
-                raise RuntimeError('No handler for key: %s, and default handler not defined' % str(e.args))
+                raise RuntimeError(
+                    'No handler for key: %s, and default handler not defined' % str(e.args))
 
         return await _invoke(fn, msg, *args, **kwargs)
 
@@ -274,7 +274,7 @@ class Monitor(helper.ListenerContext, DefaultRouterMixin):
     def __init__(self, seed_tuple, capture, **kwargs):
         """
         A delegate that never times-out, probably doing some kind of background monitoring
-        in the application. Most naturally paired with :func:`telepot.aio.delegate.per_application`.
+        in the application. Most naturally paired with :func:`gramscript.aio.delegate.per_application`.
 
         :param capture: a list of patterns for ``listener`` to capture
         """
@@ -301,7 +301,8 @@ class ChatHandler(helper.ChatContext,
         self.listener.capture([{'chat': {'id': self.chat_id}}])
 
         if include_callback_query:
-            self.listener.capture([{'message': {'chat': {'id': self.chat_id}}}])
+            self.listener.capture(
+                [{'message': {'chat': {'id': self.chat_id}}}])
 
 
 @openable
@@ -324,10 +325,12 @@ class UserHandler(helper.UserContext,
         if flavors == 'all':
             self.listener.capture([{'from': {'id': self.user_id}}])
         else:
-            self.listener.capture([lambda msg: flavor(msg) in flavors, {'from': {'id': self.user_id}}])
+            self.listener.capture([lambda msg: flavor(msg) in flavors, {
+                                  'from': {'id': self.user_id}}])
 
         if include_callback_query:
-            self.listener.capture([{'message': {'chat': {'id': self.user_id}}}])
+            self.listener.capture(
+                [{'message': {'chat': {'id': self.user_id}}}])
 
 
 class InlineUserHandler(UserHandler):
@@ -335,7 +338,8 @@ class InlineUserHandler(UserHandler):
         """
         A delegate to handle a user's inline-related actions.
         """
-        super(InlineUserHandler, self).__init__(seed_tuple, flavors=inline_flavors, **kwargs)
+        super(InlineUserHandler, self).__init__(
+            seed_tuple, flavors=inline_flavors, **kwargs)
 
 
 @openable
@@ -352,7 +356,8 @@ class CallbackQueryOriginHandler(helper.CallbackQueryOriginContext,
 
         self.listener.capture([
             lambda msg:
-                flavor(msg) == 'callback_query' and origin_identifier(msg) == self.origin
+                flavor(msg) == 'callback_query' and origin_identifier(
+                    msg) == self.origin
         ])
 
 
@@ -369,4 +374,5 @@ class InvoiceHandler(helper.InvoiceContext,
         super(InvoiceHandler, self).__init__(bot, seed, **kwargs)
 
         self.listener.capture([{'invoice_payload': self.payload}])
-        self.listener.capture([{'successful_payment': {'invoice_payload': self.payload}}])
+        self.listener.capture(
+            [{'successful_payment': {'invoice_payload': self.payload}}])

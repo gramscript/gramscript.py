@@ -34,7 +34,7 @@ def origin_identifier(msg):
 
 def message_identifier(msg):
     """
-    Extract an identifier for message editing. Useful with :meth:`telepot.Bot.editMessageText`
+    Extract an identifier for message editing. Useful with :meth:`gramscript.Bot.editMessageText`
     and similar methods. Returned value is guaranteed to be a tuple.
 
     ``msg`` is expected to be ``chat`` or ``choson_inline_result``.
@@ -279,7 +279,7 @@ class Editor(object):
     - :meth:`.Bot.editMessageLiveLocation`
     - :meth:`.Bot.stopMessageLiveLocation`
 
-    A message's identifier can be easily extracted with :func:`telepot.message_identifier`.
+    A message's identifier can be easily extracted with :func:`gramscript.message_identifier`.
     """
 
     def __init__(self, bot, msg_identifier):

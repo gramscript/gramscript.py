@@ -5,10 +5,13 @@ from os import path
 import sys
 import re
 
+
 def _not_async(filepath):
     return filepath.find('aio/') < 0
 
 # Do not copy async module for Python 3.3 or below.
+
+
 class nocopy_async(build_py):
     def find_all_modules(self):
         modules = build_py.find_all_modules(self)
@@ -21,13 +24,15 @@ class nocopy_async(build_py):
         return modules
 
 # Do not compile async.py for Python 3.3 or below.
+
+
 class nocompile_async(install_lib):
     def byte_compile(self, files):
         files = list(filter(_not_async, files))
         install_lib.byte_compile(self, files)
 
 
-PY_35 = sys.version_info >= (3,5)
+PY_35 = sys.version_info >= (3, 5)
 
 here = path.abspath(path.dirname(__file__))
 
@@ -43,16 +48,17 @@ else:
     cmdclass['install_lib'] = nocompile_async
 
 # Parse version
-with open(path.join(here, 'telepot', '__init__.py')) as f:
-    m = re.search('^__version_info__ *= *\(([0-9]+), *([0-9]+)\)', f.read(), re.MULTILINE)
+with open(path.join(here, 'gramscript', '__init__.py')) as f:
+    m = re.search(
+        '^__version_info__ *= *\(([0-9]+), *([0-9]+)\)', f.read(), re.MULTILINE)
     version = '.'.join(m.groups())
 
 
 setup(
     cmdclass=cmdclass,
 
-    name='telepot',
-    packages=['telepot', 'telepot.aio'],
+    name='gramscript',
+    packages=['gramscript', 'gramscript.aio'],
     # Do not filter out packages because we need the whole thing during `sdist`.
 
     install_requires=install_requires,
@@ -63,7 +69,7 @@ setup(
 
     long_description='',
 
-    url='https://github.com/nickoala/telepot',
+    url='https://github.com/nickoala/gramscript',
 
     author='Nick Lee',
     author_email='lee1nick@yahoo.ca',

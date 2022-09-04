@@ -1,5 +1,5 @@
 """
-Like :mod:`telepot.delegate`, this module has a bunch of seeder factories
+Like :mod:`gramscript.delegate`, this module has a bunch of seeder factories
 and delegator factories.
 
 .. autofunction:: per_chat_id
@@ -41,8 +41,10 @@ from ..delegate import (
     include_callback_query_chat_id, intercept_callback_query_origin
 )
 
+
 def _ensure_coroutine_function(fn):
     return fn if asyncio.iscoroutinefunction(fn) else asyncio.coroutine(fn)
+
 
 def call(corofunc, *args, **kwargs):
     """
@@ -51,9 +53,11 @@ def call(corofunc, *args, **kwargs):
         ``corofunc(seed_tuple, *args, **kwargs)``.
     """
     corofunc = _ensure_coroutine_function(corofunc)
+
     def f(seed_tuple):
         return corofunc(seed_tuple, *args, **kwargs)
     return f
+
 
 def create_run(cls, *args, **kwargs):
     """
@@ -67,6 +71,7 @@ def create_run(cls, *args, **kwargs):
         j = cls(seed_tuple, *args, **kwargs)
         return _ensure_coroutine_function(j.run)()
     return f
+
 
 def create_open(cls, *args, **kwargs):
     """

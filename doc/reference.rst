@@ -1,7 +1,7 @@
-telepot reference
+gramscript reference
 =================
 
-Telepot has two versions:
+gramscript has two versions:
 
 - **Traditional version works on Python 2.7 and Python 3.** It uses
   `urllib3 <https://urllib3.readthedocs.io/en/latest/>`_ to make HTTP requests,
@@ -19,30 +19,30 @@ the most significant differences being:
 - Delegation is achieved by tasks, instead of threads. Thread-safety ceases to
   be a concern.
 
-Traditional modules are under the package :mod:`telepot`, while async modules are
-under :mod:`telepot.aio`:
+Traditional modules are under the package :mod:`gramscript`, while async modules are
+under :mod:`gramscript.aio`:
 
 +-------------------+-----------------------+
 | Traditional       | Async                 |
 +===================+=======================+
-| telepot           | telepot.aio           |
+| gramscript           | gramscript.aio           |
 +-------------------+-----------------------+
-| telepot.loop      | telepot.aio.loop      |
+| gramscript.loop      | gramscript.aio.loop      |
 +-------------------+-----------------------+
-| telepot.delegate  | telepot.aio.delegate  |
+| gramscript.delegate  | gramscript.aio.delegate  |
 +-------------------+-----------------------+
-| telepot.helper    | telepot.aio.helper    |
+| gramscript.helper    | gramscript.aio.helper    |
 +-------------------+-----------------------+
-| telepot.routing   | telepot.aio.routing   |
+| gramscript.routing   | gramscript.aio.routing   |
 +-------------------+-----------------------+
-| telepot.api       | telepot.aio.api       |
+| gramscript.api       | gramscript.aio.api       |
 +-------------------+-----------------------+
 
-Some modules do not have async counterparts, e.g. :mod:`telepot.namedtuple` and
-:mod:`telepot.exception`, because they are shared.
+Some modules do not have async counterparts, e.g. :mod:`gramscript.namedtuple` and
+:mod:`gramscript.exception`, because they are shared.
 
 Try to combine this reading with the provided
-`examples <https://github.com/nickoala/telepot/tree/master/examples>`_ .
+`examples <https://github.com/nickoala/gramscript/tree/master/examples>`_ .
 One example is worth a thousand words. I hope they make things clear.
 
 Basic Bot
@@ -52,7 +52,7 @@ The ``Bot`` class is mostly a wrapper around `Telegram Bot API <https://core.tel
 Many methods are straight mappings to Bot API methods. Where appropriate,
 I only give links below. No point to duplicate all the details.
 
-.. autoclass:: telepot.Bot
+.. autoclass:: gramscript.Bot
    :members:
 
 Message Loop and Webhook
@@ -64,7 +64,7 @@ There are two ways to obtain updates from Telegram Bot API: make calls to
 In the former case, it is troublesome to have to program that manually.
 So :class:`.MessageLoop` is here to ease your burden. In the latter case,
 although the programming overhead is mainly on the web server, a structured way
-to funnel web requests into telepot is desirable. The result is :class:`.Webhook`
+to funnel web requests into gramscript is desirable. The result is :class:`.Webhook`
 and :class:`.OrderedWebhook`.
 
 The idea is similar. You supply a message-handling function to the object
@@ -86,7 +86,7 @@ define functions specifically to handle one flavor of messages. It usually looks
 like this: ``{'chat': fn1, 'callback_query': fn2, 'inline_query': fn3, ...}``.
 Each handler function should take one argument (the message).
 
-.. autoclass:: telepot.loop.MessageLoop
+.. autoclass:: gramscript.loop.MessageLoop
    :members:
    :undoc-members:
    :inherited-members:
@@ -101,15 +101,15 @@ want to implement your own ordering logic, :class:`.Webhook` should not be used.
 In async version, a task of :meth:`.run_forever` should be created instead of
 :meth:`.run_as_thread`.
 
-Refer to `webhook examples <https://github.com/nickoala/telepot/tree/master/examples/webhook>`_
+Refer to `webhook examples <https://github.com/nickoala/gramscript/tree/master/examples/webhook>`_
 for usage.
 
-.. autoclass:: telepot.loop.OrderedWebhook
+.. autoclass:: gramscript.loop.OrderedWebhook
    :members:
    :undoc-members:
    :inherited-members:
 
-.. autoclass:: telepot.loop.Webhook
+.. autoclass:: gramscript.loop.Webhook
    :members:
    :undoc-members:
    :inherited-members:
@@ -117,19 +117,19 @@ for usage.
 Functions
 ---------
 
-.. autofunction:: telepot.flavor
-.. autofunction:: telepot.glance
-.. autofunction:: telepot.flance
-.. autofunction:: telepot.peel
-.. autofunction:: telepot.fleece
-.. autofunction:: telepot.is_event
-.. autofunction:: telepot.message_identifier
-.. autofunction:: telepot.origin_identifier
+.. autofunction:: gramscript.flavor
+.. autofunction:: gramscript.glance
+.. autofunction:: gramscript.flance
+.. autofunction:: gramscript.peel
+.. autofunction:: gramscript.fleece
+.. autofunction:: gramscript.is_event
+.. autofunction:: gramscript.message_identifier
+.. autofunction:: gramscript.origin_identifier
 
 DelegatorBot
 ------------
 
-.. autoclass:: telepot.DelegatorBot
+.. autoclass:: gramscript.DelegatorBot
 
 A *seeder* is a function that:
 
@@ -168,133 +168,133 @@ argument, the above logic will be executed for every message received.
 In the list of delegation patterns, all seeder functions are evaluated in order.
 One message may start multiple delegates.
 
-The module :mod:`telepot.delegate` has a bunch of seeder factories
+The module :mod:`gramscript.delegate` has a bunch of seeder factories
 and delegator factories, which greatly ease the use of DelegatorBot. The module
-:mod:`telepot.helper` also has a number of ``*Handler`` classes which provide
+:mod:`gramscript.helper` also has a number of ``*Handler`` classes which provide
 a connection-like interface to deal with individual chats or users.
 
-I have given an `answer <https://stackoverflow.com/questions/45387797/how-does-the-delegatorbot-work-exactly-in-telepot/45397368#45397368>`_
+I have given an `answer <https://stackoverflow.com/questions/45387797/how-does-the-delegatorbot-work-exactly-in-gramscript/45397368#45397368>`_
 on Stack Overflow which elaborates on the inner workings of DelegatorBot in
 greater details. Interested readers are encouraged to read that.
 
 In the rest of discussions, *seed tuple* means a (bot, message, seed) tuple,
 referring to the single argument taken by delegator functions.
 
-``telepot.delegate``
+``gramscript.delegate``
 --------------------
 
-.. automodule:: telepot.delegate
+.. automodule:: gramscript.delegate
    :members:
 
-``telepot.helper``
+``gramscript.helper``
 ------------------
 
 Handlers
 ++++++++
 
-.. autoclass:: telepot.helper.Monitor
+.. autoclass:: gramscript.helper.Monitor
    :show-inheritance:
    :members:
 
-.. autoclass:: telepot.helper.ChatHandler
+.. autoclass:: gramscript.helper.ChatHandler
    :show-inheritance:
    :members:
 
-.. autoclass:: telepot.helper.UserHandler
+.. autoclass:: gramscript.helper.UserHandler
    :show-inheritance:
    :members:
 
-.. autoclass:: telepot.helper.InlineUserHandler
+.. autoclass:: gramscript.helper.InlineUserHandler
    :show-inheritance:
    :members:
 
-.. autoclass:: telepot.helper.CallbackQueryOriginHandler
+.. autoclass:: gramscript.helper.CallbackQueryOriginHandler
    :show-inheritance:
    :members:
 
-.. autoclass:: telepot.helper.InvoiceHandler
+.. autoclass:: gramscript.helper.InvoiceHandler
    :show-inheritance:
    :members:
 
 Contexts
 ++++++++
 
-.. autoclass:: telepot.helper.ListenerContext
+.. autoclass:: gramscript.helper.ListenerContext
    :members:
    :undoc-members:
 
-.. autoclass:: telepot.helper.ChatContext
+.. autoclass:: gramscript.helper.ChatContext
    :show-inheritance:
    :members:
    :undoc-members:
 
-.. autoclass:: telepot.helper.UserContext
+.. autoclass:: gramscript.helper.UserContext
    :show-inheritance:
    :members:
    :undoc-members:
 
-.. autoclass:: telepot.helper.CallbackQueryOriginContext
+.. autoclass:: gramscript.helper.CallbackQueryOriginContext
    :show-inheritance:
    :members:
    :undoc-members:
 
-.. autoclass:: telepot.helper.InvoiceContext
+.. autoclass:: gramscript.helper.InvoiceContext
    :show-inheritance:
    :members:
    :undoc-members:
 
-.. autoclass:: telepot.helper.Sender
+.. autoclass:: gramscript.helper.Sender
    :members:
 
-.. autoclass:: telepot.helper.Administrator
+.. autoclass:: gramscript.helper.Administrator
    :members:
 
-.. autoclass:: telepot.helper.Editor
+.. autoclass:: gramscript.helper.Editor
    :members:
 
-.. autoclass:: telepot.helper.Listener
+.. autoclass:: gramscript.helper.Listener
    :members:
 
 Mixins
 ++++++
 
-.. autoclass:: telepot.helper.Router
+.. autoclass:: gramscript.helper.Router
    :members:
 
-.. autoclass:: telepot.helper.DefaultRouterMixin
-   :members:
-   :undoc-members:
-
-.. autoclass:: telepot.helper.StandardEventScheduler
+.. autoclass:: gramscript.helper.DefaultRouterMixin
    :members:
    :undoc-members:
 
-.. autoclass:: telepot.helper.StandardEventMixin
+.. autoclass:: gramscript.helper.StandardEventScheduler
+   :members:
+   :undoc-members:
+
+.. autoclass:: gramscript.helper.StandardEventMixin
    :members:
    :undoc-members:
    :exclude-members: StandardEventScheduler
 
-.. autoclass:: telepot.helper.IdleEventCoordinator
+.. autoclass:: gramscript.helper.IdleEventCoordinator
    :members:
 
-.. autoclass:: telepot.helper.IdleTerminateMixin
+.. autoclass:: gramscript.helper.IdleTerminateMixin
    :members:
    :undoc-members:
    :exclude-members: IdleEventCoordinator
 
-.. autoclass:: telepot.helper.CallbackQueryCoordinator
+.. autoclass:: gramscript.helper.CallbackQueryCoordinator
    :members:
    :undoc-members:
 
-.. autoclass:: telepot.helper.InterceptCallbackQueryMixin
+.. autoclass:: gramscript.helper.InterceptCallbackQueryMixin
    :members:
    :undoc-members:
    :exclude-members: CallbackQueryCoordinator
 
-.. autoclass:: telepot.helper.Answerer
+.. autoclass:: gramscript.helper.Answerer
    :members:
 
-.. autoclass:: telepot.helper.AnswererMixin
+.. autoclass:: gramscript.helper.AnswererMixin
    :members:
    :undoc-members:
    :exclude-members: Answerer
@@ -302,23 +302,23 @@ Mixins
 Utilities
 +++++++++
 
-.. autoclass:: telepot.helper.SafeDict
+.. autoclass:: gramscript.helper.SafeDict
    :members:
 
-.. autofunction:: telepot.helper.openable
+.. autofunction:: gramscript.helper.openable
 
-``telepot.exception``
+``gramscript.exception``
 ---------------------
 
-.. automodule:: telepot.exception
+.. automodule:: gramscript.exception
    :members:
    :undoc-members:
 
-``telepot.namedtuple``
+``gramscript.namedtuple``
 ----------------------
 
-Telepot's custom is to represent Bot API object as *dictionary*.
-On the other hand, the module :mod:`telepot.namedtuple` also provide namedtuple
+gramscript's custom is to represent Bot API object as *dictionary*.
+On the other hand, the module :mod:`gramscript.namedtuple` also provide namedtuple
 classes mirroring those objects. The reasons are twofold:
 
 1. Under some situations, you may want an object with a complete set of fields,
@@ -376,20 +376,20 @@ Outgoing objects include:
 - `LabeledPrice <https://core.telegram.org/bots/api#labeledprice>`_
 - `ShippingOption <https://core.telegram.org/bots/api#shippingoption>`_
 
-``telepot.routing``
+``gramscript.routing``
 -------------------
 
-.. automodule:: telepot.routing
+.. automodule:: gramscript.routing
    :members:
 
-``telepot.text``
+``gramscript.text``
 ----------------
 
-.. automodule:: telepot.text
+.. automodule:: gramscript.text
    :members:
 
-``telepot.api``
+``gramscript.api``
 ----------------
 
-.. automodule:: telepot.api
+.. automodule:: gramscript.api
    :members:

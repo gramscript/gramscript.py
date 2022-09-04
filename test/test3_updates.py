@@ -91,7 +91,7 @@ def see_every_content_types(msg):
 TOKEN = sys.argv[1]
 USER_ID = int(sys.argv[2])
 
-# telepot.api.set_proxy('http://192.168.0.103:3128')
+# gramscript.api.set_proxy('http://192.168.0.103:3128')
 
 bot = gramscript.Bot(TOKEN)
 

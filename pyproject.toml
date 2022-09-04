@@ -4,7 +4,7 @@ version = "1.0.1"
 authors = [
   { name="kalanakt", email="e19198@eng.pdn.ac.lk" },
 ]
-description = "A small example package"
+description = "Powerful, MTProto API framework in Python for users and bots "
 readme = "README.md"
 license = { file="LICENSE" }
 requires-python = ">=3.7"

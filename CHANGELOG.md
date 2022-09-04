@@ -1,4 +1,4 @@
-# telepot changelog
+# gramscript changelog
 
 ## 12.7 (2018-05-27)
 
@@ -11,7 +11,7 @@
 - Added `parse_mode` to all methods and namedtuples supporting `caption`
 - Added `supports_streaming` and `connected_website` to relevant methods and
   namedtuples
-- Fixed downloading through proxy in `telepot.aio.api` module
+- Fixed downloading through proxy in `gramscript.aio.api` module
 
 ## 12.5 (2017-11-28)
 
@@ -19,7 +19,7 @@
 - Added method `sendMediaGroup` and namedtuple `InputMediaPhoto` and
   `InputMediaVideo`
 - Added parameter `provider_data` to method `sendInvoice`
-- Better exception handling in `telepot.aio.api` module
+- Better exception handling in `gramscript.aio.api` module
 
 ## 12.4 (2017-10-19)
 
@@ -43,7 +43,7 @@
 - Bot API 3.3
 - Added new fields to namedtuple `Chat`, `Message`, and `User`
 - Included `aiohttp.ClientResponseError` in raising `BadHTTPResponse`
-- Added package `telepot.text` to help format Markdown and HTML by applying
+- Added package `gramscript.text` to help format Markdown and HTML by applying
   entities
 
 ## 12.2 (2017-08-01)
@@ -97,7 +97,7 @@
 ## 11.0 (2017-05-09)
 
 - Async version compliant with aiohttp2
-- Added `telepot.loop` and `telepot.aio.loop` module. Method `message_loop()` deprecated.
+- Added `gramscript.loop` and `gramscript.aio.loop` module. Method `message_loop()` deprecated.
   Use class `MessageLoop`, `OrderedWebhook`, or `Webhook` instead.
 
 ## 10.5 (2017-03-02)
@@ -137,7 +137,7 @@
 - Implemented Gaming Platform stuff
 - Added game-related methods, e.g. `sendGame`, `setGameScore`, etc.
 - Added game-related namedtuple, e.g. `InlineQueryResultGame`, etc.
-- `telepot.glance()` may return content type `game`
+- `gramscript.glance()` may return content type `game`
 - Added method `getWebhookInfo`
 - Added new parameters to some methods, e.g. `caption` for `sendAudio()`, etc.
 - Handled `EventNotFound` in `IdleEventCoordinator.refresh()`
@@ -169,7 +169,7 @@ callback query are now possible.
 ## 8.2 (2016-07-04)
 
 - Handling of callback query still unsatisfactory, a transitional release
-- Changed async version to `telepot.aio` to avoid collision with `async` keyword
+- Changed async version to `gramscript.aio` to avoid collision with `async` keyword
 - Added `CallbackQueryCoordinator` and `CallbackQueryAble` to facilitate transparent handling of `CallbackQuery`
 - Added `AnswererMixin` to give an `Answerer` instance
 - Added `Timer` to express different timeout behaviors
@@ -195,9 +195,9 @@ callback query are now possible.
 
 - Added HTTP connection pooling (for both traditional and async version). Bot API requests are much speedier.
 - Most requests are now done with `urllib3`, moving away from `requests`.
-- Added module `telepot.routing` and `telepot.async.routing` to provide common key functions and routing tables for `Router` to use.
+- Added module `gramscript.routing` and `gramscript.async.routing` to provide common key functions and routing tables for `Router` to use.
 - Removed method `set_key_function` and `set_routing_table` from `Router`. Access instance variable `key_function` and `routing_table` instead.
-- Added function `telepot.message_identifier` to extract message identifier for editing messages.
+- Added function `gramscript.message_identifier` to extract message identifier for editing messages.
 - Added helper class `Editor` to ease editing messages.
 - `ChatHandler`, by default, also captures `callback_query` from the same user.
 - Added `InlineUserHandler` to capture only inline-related messages.
@@ -218,15 +218,15 @@ callback query are now possible.
         - `answerCallbackQuery()`
         - `editMessageText()`, `editMessageCaption()`, `editMessageReplyMarkup()`
     - To `ChatContext`, added a property `administrator`
-- Added `telepot.exception.MigratedToSupergroupChatError`
+- Added `gramscript.exception.MigratedToSupergroupChatError`
 - Backward-incompatible name changes
     - Flavor `normal` → `chat`
     - Method `notifyOnMessage` → `message_loop`
     - Method `messageLoop` → `message_loop`
     - Method `downloadFile` → `download_file`
-    - Function `telepot.namedtuple.namedtuple` was removed. Create namedtuples using their constructors directly.
-    - Function `telepot.glance2` was removed. Use `telepot.glance`.
-    - Chat messages' content type returned by `telepot.glance`:
+    - Function `gramscript.namedtuple.namedtuple` was removed. Create namedtuples using their constructors directly.
+    - Function `gramscript.glance2` was removed. Use `gramscript.glance`.
+    - Chat messages' content type returned by `gramscript.glance`:
         - `new_chat_participant` → `new_chat_member`
         - `left_chat_participant` → `left_chat_member`
 
@@ -244,14 +244,14 @@ callback query are now possible.
 
 - Changed `Answerer` interface. Compute function is now passed to method `answer()`, not to the constructor.
 - Added parameter `disable_notification` to methods `sendZZZ()`
-- Added function `telepot.delegate.per_application()` and `per_message()`
+- Added function `gramscript.delegate.per_application()` and `per_message()`
 - Used `data` to pass POST parameters to prevent too-long query strings on URL
 - Async version support pushed back to Python 3.4.2
 
 ## 6.5 (2016-02-21)
 
 - Supports file-like object and filename when sending files
-- Moved all exceptions to module `telepot.exception`
+- Moved all exceptions to module `gramscript.exception`
 - Expanded testing to Python 3.5
 
 ## 6.4 (2016-02-16)
@@ -260,20 +260,20 @@ callback query are now possible.
 - As an alternative to implementing `Bot.handle(msg)`, you may implement `Bot.on_chat_message(msg)`, `Bot.on_inline_query(msg)`, and `Bot.on_chosen_inline_result(msg)` as needed.
 - As an alternative to implementing `ZZZHandler.on_message()`, you may implement `ZZZHandler.on_chat_message(msg)`, `ZZZHandler.on_inline_query(msg)`, and `ZZZHandler.on_chosen_inline_result(msg)` as needed.
 - `notifyOnMessage()` and `messageLoop()` accept a dict as callback, routing messages according to flavor.
-- Added function `telepot.flavor_router()`, classes `telepot.helper.Router` and `telepot.helper.DefaultRouterMixin`, and their async counterparts to facilitate message routing.
-- Many functions in `telepot.delegate` and `telepot.helper` now have aliases in their respective async modules, making imports more symmetric.
+- Added function `gramscript.flavor_router()`, classes `gramscript.helper.Router` and `gramscript.helper.DefaultRouterMixin`, and their async counterparts to facilitate message routing.
+- Many functions in `gramscript.delegate` and `gramscript.helper` now have aliases in their respective async modules, making imports more symmetric.
 
 ## 6.3 (2016-02-06)
 
 - Added `Answerer` class to better deal with inline queries
-- Made `telepot.glance()` equivalent to `telepot.glance2()`. Developers are encouraged to use `telepot.glance()` from now on.
-- Added `telepot.flance()`, a combination of `telepot.flavor()` and `telepot.glance()`.
+- Made `gramscript.glance()` equivalent to `gramscript.glance2()`. Developers are encouraged to use `gramscript.glance()` from now on.
+- Added `gramscript.flance()`, a combination of `gramscript.flavor()` and `gramscript.glance()`.
 
 ## 6.2 (2016-01-18)
 
 - Handle new field `chosen_inline_result` in Update object
-- `telepot.flavor()` returns a new flavor `chosen_inline_result`
-- Added `telepot.namedtuple.ChosenInlineResult` class
+- `gramscript.flavor()` returns a new flavor `chosen_inline_result`
+- Added `gramscript.namedtuple.ChosenInlineResult` class
 
 ## 6.1 (2016-01-13)
 
@@ -281,9 +281,9 @@ callback query are now possible.
 
 ## 6.0 (2016-01-13)
 
-- Moved all namedtuple-related stuff to a new module `telepot.namedtuple`. All calls to the function `telepot.namedtuple()` should be changed to `telepot.namedtuple.namedtuple()`
-- Added a function `telepot.flavor()` to differentiate between a normal message and an inline query
-- Added `flavor` parameter to `telepot.glance2()` to extract info according to message flavor
+- Moved all namedtuple-related stuff to a new module `gramscript.namedtuple`. All calls to the function `gramscript.namedtuple()` should be changed to `gramscript.namedtuple.namedtuple()`
+- Added a function `gramscript.flavor()` to differentiate between a normal message and an inline query
+- Added `flavor` parameter to `gramscript.glance2()` to extract info according to message flavor
 - `notifyOnMessage()` and `messageLoop()` can handle inline query as well as normal chat messages
 - Added a few `per_XXX_id()` functions useful for spawning delegates for inline queries
 - Added `UserHandler`
@@ -352,7 +352,7 @@ callback query are now possible.
 
 - Conforms to latest Telegram Bot API as of August 29, 2015
 - Added `certificate` parameters to `setWebhook()`
-- Added `telepot.glance()` and `telepot.namedtuple()`
+- Added `gramscript.glance()` and `gramscript.namedtuple()`
 - Consolidated all tests into one script
 
 ## 1.1 (2015-08-21)

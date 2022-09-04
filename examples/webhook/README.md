@@ -16,7 +16,7 @@ $ python3.5 aiohttp_countera.py <token> <listening_port> https://<domain>/abc
 
 Remember you will have to set up the **webhook URL, SSL certificate, and web server** on your own.
 
-## Telepot's Webhook Interface
+## gramscript's Webhook Interface
 
 Setting up a **[webhook](https://core.telegram.org/bots/api#setwebhook)** is
 more complicated than using `getUpdates()` because:
@@ -30,16 +30,16 @@ That is, update_id `1000` may arrive ahead of update_id `999`, if the two are is
 Telegram servers very closely. Unless a bot absolutely doesn't care about update order,
 it will have to re-order them in some way.
 
-Telepot has a mechanism to interface with web applications, and it takes care of re-ordering
+gramscript has a mechanism to interface with web applications, and it takes care of re-ordering
 for you. It is called `OrderedWebhook`.
 
 ```python
-from telepot.loop import OrderedWebhook
+from gramscript.loop import OrderedWebhook
 
 def handle(msg):
     # ......
 
-bot = telepot.Bot(TOKEN)
+bot = gramscript.Bot(TOKEN)
 webhook = OrderedWebhook(bot, handle)
 
 webhook.run_as_thread()

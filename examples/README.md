@@ -20,7 +20,7 @@ Various styles of handling callback query.
 
 ## Webhook
 
-How to integrate telepot with webhook.
+How to integrate gramscript with webhook.
 
 ## Deep Linking
 

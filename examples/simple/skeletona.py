@@ -7,7 +7,7 @@ from gramscript.aio.loop import MessageLoop
 """
 $ python3.5 skeletona.py <token>
 
-A skeleton for your async telepot programs.
+A skeleton for your async gramscript programs.
 """
 
 

@@ -6,7 +6,7 @@ from gramscript.loop import MessageLoop
 """
 $ python2.7 skeleton.py <token>
 
-A skeleton for your telepot programs.
+A skeleton for your gramscript programs.
 """
 
 

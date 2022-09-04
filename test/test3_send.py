@@ -399,7 +399,7 @@ TOKEN = sys.argv[1]
 USER_ID = int(sys.argv[2])
 
 # Edit /etc/tinyproxy/tinyproxy.conf to allow access
-# telepot.api.set_proxy('http://192.168.0.103:8888')
+# gramscript.api.set_proxy('http://192.168.0.103:8888')
 
 bot = gramscript.Bot(TOKEN)
 

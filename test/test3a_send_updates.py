@@ -346,7 +346,7 @@ TOKEN = sys.argv[1]
 USER_ID = int(sys.argv[2])
 
 # Edit /etc/tinyproxy/tinyproxy.conf to allow access
-# telepot.aio.api.set_proxy('http://192.168.0.104:8888')
+# gramscript.aio.api.set_proxy('http://192.168.0.104:8888')
 
 bot = gramscript.aio.Bot(TOKEN)
 loop = asyncio.get_event_loop()
