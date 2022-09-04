@@ -1,56 +1,68 @@
-from .sqlite_storage import SQLiteStorage
-import struct
-import sqlite3
-import logging
-import base64
-# MIT License
-
-# Copyright (c) 2022 Gramscript Telegram API
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+from gramscript.storage.base_storage import StateStorageBase, StateContext
 
 
-log = logging.getLogger(__name__)
+class StateMemoryStorage(StateStorageBase):
+    def __init__(self) -> None:
+        self.data = {}
+        #
+        # {chat_id: {user_id: {'state': None, 'data': {}}, ...}, ...}
 
+    def set_state(self, chat_id, user_id, state):
+        if hasattr(state, 'name'):
+            state = state.name
+        if chat_id in self.data:
+            if user_id in self.data[chat_id]:
+                self.data[chat_id][user_id]['state'] = state
+                return True
+            else:
+                self.data[chat_id][user_id] = {'state': state, 'data': {}}
+                return True
+        self.data[chat_id] = {user_id: {'state': state, 'data': {}}}
+        return True
 
-class MemoryStorage(SQLiteStorage):
-    def __init__(self, name: str):
-        super().__init__(name)
+    def delete_state(self, chat_id, user_id):
+        if self.data.get(chat_id):
+            if self.data[chat_id].get(user_id):
+                del self.data[chat_id][user_id]
+                if chat_id == user_id:
+                    del self.data[chat_id]
 
-    async def open(self):
-        self.conn = sqlite3.connect(":memory:", check_same_thread=False)
-        self.create()
+                return True
 
-        if self.name != ":memory:":
-            dc_id, test_mode, auth_key, user_id, is_bot = struct.unpack(
-                self.SESSION_STRING_FORMAT,
-                base64.urlsafe_b64decode(
-                    self.name + "=" * (-len(self.name) % 4)
-                )
-            )
+        return False
 
-            await self.dc_id(dc_id)
-            await self.test_mode(test_mode)
-            await self.auth_key(auth_key)
-            await self.user_id(user_id)
-            await self.is_bot(is_bot)
-            await self.date(0)
+    def get_state(self, chat_id, user_id):
 
-    async def delete(self):
-        raise NotImplementedError
+        if self.data.get(chat_id):
+            if self.data[chat_id].get(user_id):
+                return self.data[chat_id][user_id]['state']
+
+        return None
+
+    def get_data(self, chat_id, user_id):
+        if self.data.get(chat_id):
+            if self.data[chat_id].get(user_id):
+                return self.data[chat_id][user_id]['data']
+
+        return None
+
+    def reset_data(self, chat_id, user_id):
+        if self.data.get(chat_id):
+            if self.data[chat_id].get(user_id):
+                self.data[chat_id][user_id]['data'] = {}
+                return True
+        return False
+
+    def set_data(self, chat_id, user_id, key, value):
+        if self.data.get(chat_id):
+            if self.data[chat_id].get(user_id):
+                self.data[chat_id][user_id]['data'][key] = value
+                return True
+        raise RuntimeError(
+            'chat_id {} and user_id {} does not exist'.format(chat_id, user_id))
+
+    def get_interactive_data(self, chat_id, user_id):
+        return StateContext(self, chat_id, user_id)
+
+    def save(self, chat_id, user_id, data):
+        self.data[chat_id][user_id]['data'] = data

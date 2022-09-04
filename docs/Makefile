@@ -1,10 +1,10 @@
 # Minimal makefile for Sphinx documentation
 #
 
-# You can set these variables from the command line.
-SPHINXOPTS    = -j $(shell nproc --all)
-SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = gramscript
+# You can set these variables from the command line, and also
+# from the environment for the first two.
+SPHINXOPTS    ?=
+SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
 
@@ -18,6 +18,3 @@ help:
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
-
-lhtml: # live html
-	sphinx-autobuild -H $(shell ipconfig getifaddr en3) -b html "$(SOURCEDIR)" "$(BUILDDIR)/html" $(SPHINXOPTS)

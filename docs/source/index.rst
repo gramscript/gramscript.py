@@ -1,164 +1,69 @@
-Welcome to gramscript
-===================
-
-.. raw:: html
-
-    <div align="center">
-        <a href="/">
-            <div><img src="_static/gramscript.png" alt="gramscript Logo" width="420"></div>
-        </a>
-    </div>
-
-    <p align="center">
-        <b>Telegram MTProto API Framework for Python</b>
-
-        <br>
-        <a href="https://github.com/gramscript/gramscript">
-            Source Code
-        </a>
-        •
-        <a href="https://github.com/gramscript/gramscript/releases">
-            Releases
-        </a>
-        •
-        <a href="https://t.me/gramscript">
-            Community
-        </a>
-    </p>
-
-.. code-block:: python
-
-    from gramscript import Client, filters
-
-    app = Client("my_account")
+.. pyTelegramBotAPI documentation master file, created by
+   sphinx-quickstart on Fri Feb 18 20:58:37 2022.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
 
-    @app.on_message(filters.private)
-    async def hello(client, message):
-        await message.reply_text(f"Hello {message.from_user.mention}")
+Welcome to pyTelegramBotAPI's documentation!
+============================================
+
+.. meta::
+   :description: Official documentation of pyTelegramBotAPI
+   :keywords: ptba, pytba, pyTelegramBotAPI, documentation, guide
 
 
-    app.run()
+=======
+TeleBot
+=======
+TeleBot is synchronous and asynchronous implementation of  `Telegram Bot API <https://core.telegram.org/bots/api>`_.
 
-**gramscript** is a modern, elegant and easy-to-use Telegram_ framework written from the ground up in Python and C.
-It enables you to easily create custom apps for both user and bot identities (bot API alternative) via the
-:doc:`MTProto API <topics/mtproto-vs-botapi>`.
+Chats
+-----
+English chat: `Private chat <https://telegram.me/joinchat/Bn4ixj84FIZVkwhk2jag6A>`__
 
-.. _Telegram: https://telegram.org
+Russian chat: `@pytelegrambotapi_talks_ru <https://t.me/pytelegrambotapi_talks_ru>`__
 
-How the Documentation is Organized
-----------------------------------
+News: `@pyTelegramBotAPI <https://t.me/pytelegrambotapi>`__
 
-Contents are organized into sections composed of self-contained topics which can be all accessed from the sidebar, or by
-following them in order using the :guilabel:`Next` button at the end of each page. Here below you can, instead, find a
-list of the most relevant pages for a quick access.
+Pypi: `Pypi <https://pypi.org/project/pyTelegramBotAPI/>`__
 
-First Steps
-^^^^^^^^^^^
+Source: `Github repository <https://github.com/gramscript/gramscript.py>`__
 
-.. hlist::
-    :columns: 2
+Some features:
+--------------
+Easy to learn and use.
 
-    - :doc:`Quick Start <intro/quickstart>`: Overview to get you started quickly.
-    - :doc:`Calling Methods <start/invoking>`: How to call gramscript's methods.
-    - :doc:`Handling Updates <start/updates>`: How to handle Telegram updates.
-    - :doc:`Error Handling <start/errors>`: How to handle API errors correctly.
+Easy to understand.
 
-API Reference
-^^^^^^^^^^^^^
+Both sync and async.
 
-.. hlist::
-    :columns: 2
+Examples on features.
 
-    - :doc:`gramscript Client <api/client>`: Reference details about the Client class.
-    - :doc:`Available Methods <api/methods/index>`: List of available high-level methods.
-    - :doc:`Available Types <api/types/index>`: List of available high-level types.
-    - :doc:`Bound Methods <api/bound-methods/index>`: List of convenient bound methods.
+States
 
-Meta
-^^^^
+And more...
 
-.. hlist::
-    :columns: 2
-
-    - :doc:`gramscript FAQ <faq>`: Answers to common gramscript questions.
-    - :doc:`gramscript Glossary <glossary>`: List of words with brief explanations.
-    - :doc:`Powered by gramscript <powered-by>`: Collection of gramscript Projects.
-    - :doc:`Support gramscript <support-gramscript>`: Ways to show your appreciation.
-    - :doc:`About the License <license>`: Information about the Project license.
-    - :doc:`Release Notes <releases/index>`: Release notes for gramscript releases.
-
-Last updated on |today|
-
+Content
+--------
 .. toctree::
-    :hidden:
-    :caption: Introduction
 
-    intro/quickstart
-    intro/install
-    intro/setup
+   install
+   quick_start
+   types
+   sync_version/index
+   async_version/index
+   calldata
+   util
+   formatting
 
-.. toctree::
-    :hidden:
-    :caption: Getting Started
 
-    start/auth
-    start/invoking
-    start/updates
-    start/errors
-    start/examples/index
 
-.. toctree::
-    :hidden:
-    :caption: API Reference
 
-    api/client
-    api/methods/index
-    api/types/index
-    api/bound-methods/index
-    api/handlers
-    api/decorators
-    api/errors/index
-    api/filters
+Indices and tables
+==================
 
-.. toctree::
-    :hidden:
-    :caption: Topic Guides
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
-    topics/use-filters
-    topics/create-filters
-    topics/more-on-updates
-    topics/config-file
-    topics/smart-plugins
-    topics/session-settings
-    topics/tgcrypto
-    topics/storage-engines
-    topics/text-formatting
-    topics/serializing
-    topics/proxy
-    topics/scheduling
-    topics/bots-interaction
-    topics/mtproto-vs-botapi
-    topics/debugging
-    topics/test-servers
-    topics/advanced-usage
-    topics/voice-calls
-
-.. toctree::
-    :hidden:
-    :caption: Meta
-
-    faq
-    glossary
-    powered-by
-    support-gramscript
-    license
-    releases/index
-
-.. toctree::
-    :hidden:
-    :caption: Telegram API
-
-    telegram/functions/index
-    telegram/types/index
-    telegram/base/index
+   
